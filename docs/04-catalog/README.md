@@ -15,13 +15,13 @@
 
 | 스탯 | 파일 | 항목 |
 |---|---|---|
-| 자산력 / Money | [money.md](./money.md) | M1 적금 · M2 자기개발비 · M3 ISA/청약 |
-| 숙련도 / Craft | [craft.md](./craft.md) | C1 국가기술자격 · C2 컴활 · C3 한국사 · C4 TOEIC · C5 OPIc · C6 워드/ITQ · C7 원격강좌 학점 · C8 군 e-러닝 · C9 국방 국가자격 |
-| 담력 / Edge | [edge.md](./edge.md) | E1 육군창업경진대회 · E2 국방 Start-up 챌린지/K-스타트업 · E3 공모전/동아리 |
+| 자산력 / Money | [money.md](./money.md) | M1 적금 · M2 자기개발비 · M3 ISA/청약 · **M4 청년미래적금** |
+| 숙련도 / Craft | [craft.md](./craft.md) | C1 정보처리산업기사 · C2 컴활 · C3 한국사 · C4 TOEIC · C5 OPIc · C6 워드/ITQ · C7 원격강좌 학점 · C8 군 e-러닝 · C9 국방 국가자격 · **C10 SW·AI(구름)** · **C11 군 운전면허 교환** · **C12 지게차·굴착기** · **C13 고졸 검정고시** |
+| 담력 / Edge | [edge.md](./edge.md) | E1 육군창업 · E2 K-스타트업 · E3 공모전/해커톤(+공군 해커톤 실예시) · **E4 해군창업** · **E5 공군창업** · **E6 국방AI 경연** |
 | 전투력 / Body | [body.md](./body.md) | B1 체력검정 · B2 사격 · B3 헌혈 |
 | 지휘력 / People | [people.md](./people.md) | P1 분대장/포반장 |
-| 정신력 / Mind | [mind.md](./mind.md) | MI1 다독왕 · MI2 정신전력 공모전 |
-| 취업 / Post-discharge | [post-discharge.md](./post-discharge.md) | T1 제대군인·청년 취업 연계 (D-90 해금) |
+| 정신력 / Mind | [mind.md](./mind.md) | MI1 다독왕 · MI2 정신전력 공모전(+국방헬프콜 실예시) |
+| 취업 / Post-discharge | [post-discharge.md](./post-discharge.md) | T1 제대군인·청년 취업 · **T2 내일배움카드** · **T3 보훈부 전직지원** (D-90 해금) |
 
 ## 항목 작성 규약
 

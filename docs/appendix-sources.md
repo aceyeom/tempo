@@ -18,8 +18,18 @@
 
 ---
 
-## Phase 2에서 추가 검증 예정 (신규 후보)
+## Phase 2 Wave 2 — 신규 항목 출처 (검증 2026-06-04)
 
-- **해군 창업경진대회:** navy-startup.co.kr
-- **공군 창업경진대회:** airforce-startup.co.kr
-- (그 외 Phase 2 리서치로 발굴되는 항목들)
+- **해군 창업경진대회(E4):** navy-startup.co.kr (2026 봄 사이클 안내) — 상금은 2023 회차 시드
+- **공군 창업경진대회(E5):** airforce-startup.co.kr, co-worker.co.kr(제5회) — **2026 공고 미확인**
+- **국방 AI 아이디어 경연대회(E6):** korea.kr 정책브리핑 156752582, ideamaicon.kr(접근 불가·재확인 요)
+- **공군 창의·혁신 해커톤(E3 실예시):** news1.kr, sedaily.com, rokaf.airforce.mil.kr/hackathon — 외부망 접수 ~2026-06-27
+- **국방헬프콜 콘텐츠 공모전(MI2 실예시):** contestkorea.com, mnd.go.kr — 2026 공고 2026-08 이후 확인
+- **군 장병 SW·AI 교육(C10):** army.goorm.io, army-apply.goorm.io, eiec.kdi.re.kr(국방부 공고 219386)
+- **군 운전면허 교환(C11):** safedriving.or.kr(군면허 교환발급, 직접접근 불가→스니펫), namu.wiki(보조) — 6개월/3,000km 미검증 시드
+- **지게차·굴착기운전기능사(C12):** q-net.or.kr(jmCd=7875·2026 상시검정) — 수수료 시드
+- **고졸 검정고시(C13):** gumsi.or.kr, 나라사랑포털(군 e-러닝), EBS뉴스(전국 무료화) — 2026 접수일 추정 시드
+- **청년미래적금(M4):** fsc.go.kr(금융위 보도), imnews.imbc.com(2026-06) — 현역 가입 여부 미검증
+- **국민내일배움카드(T2):** work24.go.kr, gov.kr 149200000026 — 2026 자비부담 세부 고시 확인 요
+- **국가보훈부 전직지원(T3):** mpva.go.kr(취·창업/교육훈련/생활안정), gov.kr(V-net) — 지원금 월액 연도별 조정
+- **포상휴가 법령 근거:** law.go.kr 「군인의 지위 및 복무에 관한 기본법 시행령」 제13조(특별휴가) — 10일 이내·연 상한 육16/해17/공18 (→ [10](./10-honesty-notes.md))

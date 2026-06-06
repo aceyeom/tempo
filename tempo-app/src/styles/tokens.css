@@ -1,0 +1,81 @@
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+.tempo{
+  --ink:#F2F4F6; --sub:rgba(242,244,246,.56); --faint:rgba(242,244,246,.34);
+  --line:rgba(255,255,255,.08); --hair:rgba(255,255,255,.055); --track:rgba(255,255,255,.08);
+  --shadow:0 12px 24px -20px rgba(0,0,0,.7); --inset:rgba(255,255,255,.02); --bar:#C9D0D8;
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --r-lg:20px; --r-md:15px; --r-sm:11px;
+  --game:.2; --istroke:1.75;
+  color:var(--ink);
+  font-family:Pretendard, -apple-system, system-ui, sans-serif;
+  font-feature-settings:"tnum" 0;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  word-break:keep-all; line-break:strict;
+}
+
+/* palettes */
+.tempo[data-pal="gold"]{
+  --bg:#0A0C0E; --surface:#14171B; --surface2:#1C2127; --raise:#222831;
+  --accent:#E7A33C; --accent-rgb:231,163,60; --on-accent:#1A1206;
+  --positive:#6FCF8E; --positive-rgb:111,207,142;
+  --warn:#E6B450; --warn-rgb:230,180,80; --danger:#E8694A; --danger-rgb:232,105,74;
+}
+.tempo[data-pal="green"]{
+  --bg:#090C0A; --surface:#121714; --surface2:#19211C; --raise:#1F2922;
+  --accent:#54CE7C; --accent-rgb:84,206,124; --on-accent:#06170D;
+  --positive:#54CE7C; --positive-rgb:84,206,124;
+  --warn:#E6B450; --warn-rgb:230,180,80; --danger:#E8694A; --danger-rgb:232,105,74;
+}
+.tempo[data-pal="steel"]{
+  --bg:#090C11; --surface:#131922; --surface2:#1A2230; --raise:#212B3C;
+  --accent:#5BA0F2; --accent-rgb:91,160,242; --on-accent:#06101F;
+  --positive:#5FD2A6; --positive-rgb:95,210,166;
+  --warn:#E6B450; --warn-rgb:230,180,80; --danger:#F0795C; --danger-rgb:240,121,92;
+}
+
+/* light theme */
+.tempo[data-theme="light"]{
+  --ink:#171A1F; --sub:rgba(23,26,31,.62); --faint:rgba(23,26,31,.40);
+  --line:rgba(23,26,31,.10); --hair:rgba(23,26,31,.07); --track:rgba(23,26,31,.085);
+  --shadow:0 14px 30px -22px rgba(40,36,28,.45); --inset:rgba(255,255,255,.6); --bar:#5B6573;
+}
+.tempo[data-theme="light"][data-pal="gold"]{
+  --bg:#F1EBDF; --surface:#FBF8F1; --surface2:#F3EDE1; --raise:#EBE3D3;
+  --accent:#B9791A; --accent-rgb:185,121,26; --on-accent:#FFFFFF;
+  --positive:#3E9B5F; --positive-rgb:62,155,95;
+  --warn:#C28A1E; --warn-rgb:194,138,30; --danger:#CB5234; --danger-rgb:203,82,52;
+}
+.tempo[data-theme="light"][data-pal="green"]{
+  --bg:#EAEFEA; --surface:#F8FBF8; --surface2:#EEF3EE; --raise:#E3EBE3;
+  --accent:#2E9A55; --accent-rgb:46,154,85; --on-accent:#FFFFFF;
+  --positive:#2E9A55; --positive-rgb:46,154,85;
+  --warn:#C28A1E; --warn-rgb:194,138,30; --danger:#CB5234; --danger-rgb:203,82,52;
+}
+.tempo[data-theme="light"][data-pal="steel"]{
+  --bg:#E7ECF2; --surface:#F8FAFD; --surface2:#EDF1F7; --raise:#E1E8F1;
+  --accent:#2D6FCB; --accent-rgb:45,111,203; --on-accent:#FFFFFF;
+  --positive:#2E9A6E; --positive-rgb:46,154,110;
+  --warn:#C28A1E; --warn-rgb:194,138,30; --danger:#D05A3C; --danger-rgb:208,90,60;
+}
+
+.tempo{ background:var(--bg); }
+.tempo *{ scrollbar-width:none; box-sizing:border-box; }
+.tempo *::-webkit-scrollbar{ display:none; }
+.tempo .mono{ font-family:var(--mono); font-variant-numeric:tabular-nums; }
+.tempo .num{ font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
+
+/* animations */
+@keyframes tmRise{from{transform:translateY(9px)}to{transform:none}}
+@keyframes tmFade{from{opacity:0}to{opacity:1}}
+@keyframes tmSlideIn{from{transform:translateX(40px)}to{transform:none}}
+@keyframes tmSheet{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes tmPop{0%{transform:scale(.6);opacity:0}55%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+@keyframes tmRing{0%{transform:scale(.5);opacity:.8}100%{transform:scale(2.3);opacity:0}}
+@keyframes tmGrow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.tm-rise{animation:tmRise .5s cubic-bezier(.2,.7,.3,1);}
+@media (prefers-reduced-motion:reduce){ .tm-rise{animation:none} }
+.tm-tap{transition:transform .12s ease, box-shadow .16s, border-color .16s;}
+.tm-tap:active{transform:scale(.975);}
+.tempo h1,.tempo h2,.tempo h3,.tempo p{margin:0;}

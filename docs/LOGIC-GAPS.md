@@ -1,7 +1,7 @@
-# TEMPO — Logic Gaps & Things to Fix
+# DOLBOMI — Logic Gaps & Things to Fix
 
 The catalogue of **broken, non-functional, dead, or misleading logic** in
-`tempo-app/`. This is the implementation backlog implied by the brief
+`dolbomi-app/`. This is the implementation backlog implied by the brief
 ("various components… just a visual unfunctional wrapper… all the logical
 loopholes"). Nothing here has been changed — this is analysis only.
 
@@ -218,7 +218,7 @@ keys off it.
 
 ### 🔴 G1 — No account creation
 **Reality:** only `POST /auth/login` exists; the sole account is the seeded
-`demo/tempo`. No register/signup route, no logout, no account UI.
+`demo/dolbomi`. No register/signup route, no logout, no account UI.
 `server/routes/api.js:11-20`, `server/db/seed.js:18-30`.
 **Fix:** add a register endpoint that creates a soldier + seeds their per-soldier
 rows; add login/onboarding UI.
@@ -229,7 +229,7 @@ schema-supported but unreachable.
 `api/client.js:33-42`, `store.js:27-35`.
 
 ### 🟡 G3 — Default JWT secret
-**Reality:** `SECRET` falls back to `'dev-tempo-secret-change-in-prod'` if the env var
+**Reality:** `SECRET` falls back to `'dev-dolbomi-secret-change-in-prod'` if the env var
 is unset — fine for dev, must be set in prod.
 `server/auth.js:5`.
 

@@ -1,4 +1,4 @@
-# TEMPO — Architecture
+# DOLBOMI — Architecture
 
 This describes **how the implemented app is built and wired**. For *behavioral*
 intent vs. reality see [WORKFLOW-LOGIC.md](./WORKFLOW-LOGIC.md); for the defect
@@ -7,29 +7,29 @@ inventory see [LOGIC-GAPS.md](./LOGIC-GAPS.md).
 ## 1. Repository layout
 
 ```
-tempo/
+dolbomi.app/
 ├── README.md            # design-handoff bundle README (pre-implementation; see audit)
 ├── chats/               # 7 design-tool transcripts (design intent / aspirational)
 ├── project/             # original HTML/JSX prototypes + screenshots + PRODUCT_SPEC
 ├── docs/                # ← this folder (engineering docs)
-└── tempo-app/           # the real implementation
+└── dolbomi-app/         # the real implementation
     ├── src/             # Vite + React 19 frontend
     └── server/          # Express + better-sqlite3 backend
 ```
 
 The `project/` folder is the **mockup origin** (HTML/JSX prototypes exported from a
-design tool). `tempo-app/` is the production-intended rebuild. The two are not
+design tool). `dolbomi-app/` is the production-intended rebuild. The two are not
 linked at runtime — `project/` is reference only.
 
 ## 2. Tech stack
 
-**Frontend** (`tempo-app/`)
+**Frontend** (`dolbomi-app/`)
 - **Vite + React 19** SPA.
 - **zustand** global store (`src/store.js`) holding the live, API-backed snapshot.
 - **Three.js** 3D guardian creature with a per-vertex "gilding" shader (`src/3d/creature.js`).
 - **CSS custom properties** for design tokens: 3 palettes (골드/택티컬/스틸) × light/dark (`src/styles/tokens.css`).
 
-**Backend** (`tempo-app/server/`)
+**Backend** (`dolbomi-app/server/`)
 - **Express** REST API.
 - **better-sqlite3** synchronous SQLite (auto-migrates + seeds on boot).
 - **JWT auth** with scrypt password hashing (`server/auth.js`).
@@ -87,7 +87,7 @@ src/data/index.js   single source of truth for SEED + static config + offline fa
 ```
 
 On boot, `App.jsx` calls `store.bootstrap()`:
-1. `ensureSession()` — if no token, `POST /auth/login` as `demo/tempo` (client.js:33).
+1. `ensureSession()` — if no token, `POST /auth/login` as `demo/dolbomi` (client.js:33).
 2. `GET /api/state` — assembles the full snapshot (state.js `getSnapshot`).
 3. On success: `set({ ...snapshot, loaded:true, online:true })`.
 4. On any failure: fall back to `OFFLINE_SNAPSHOT` built from `src/data` (store.js:10, 32).
@@ -127,7 +127,7 @@ Two kinds of tables:
   `activity`.
 
 `db/seed.js` imports `src/data/index.js` **directly** so the frontend prototype
-data is the single seed source, and creates one demo soldier (`demo/tempo`).
+data is the single seed source, and creates one demo soldier (`demo/dolbomi`).
 Per-soldier subquest completion is seeded from each subquest's prototype
 `done`/`verified` default.
 
@@ -166,13 +166,13 @@ implemented but **visually frozen** in normal use.
 
 ```bash
 # backend
-cd tempo-app/server && npm install && npm start    # API :4000, auto-migrate+seed
+cd dolbomi-app/server && npm install && npm start    # API :4000, auto-migrate+seed
 # frontend (separate terminal)
-cd tempo-app && npm install && npm run dev          # Vite :5173, proxies /api → :4000
+cd dolbomi-app && npm install && npm run dev          # Vite :5173, proxies /api → :4000
 # or both:
-cd tempo-app && npm run dev:all
+cd dolbomi-app && npm run dev:all
 ```
 
 Tests: `npm run test:smoke` (SSR render of every screen/overlay),
 `server/ && npm run test:api` (boots server, asserts shapes + persistence). See
-`tempo-app/SUPABASE.md` for the Postgres/Supabase path.
+`dolbomi-app/SUPABASE.md` for the Postgres/Supabase path.

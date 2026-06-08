@@ -1,4 +1,4 @@
-# TEMPO — Docs, README & Chat-Context Audit
+# DOLBOMI — Docs, README & Chat-Context Audit
 
 Per the brief: *"determine if the chat context and readme is unnecessary or needs
 updating."* Verdict per artifact, with recommended action. Short answer: **nothing
@@ -13,22 +13,22 @@ app.**
 It is a **pre-implementation handoff README** ("CODING AGENTS: READ THIS FIRST… a
 handoff bundle from Claude Design"). It instructs an agent to read the `chats/` and
 the `project/*.html` prototypes and *implement them*, and says the bundle contents
-are `README.md`, `chats/`, `project/` — with **no mention of `tempo-app/`**, which is
+are `README.md`, `chats/`, `project/` — with **no mention of `dolbomi-app/`**, which is
 the actual implementation that now exists.
 
 - **Still useful for:** provenance — explaining where the design came from and that
   `project/` holds the original mockups.
 - **Misleading now because:** it presents the repo as "designs awaiting
   implementation" when a full-stack app already exists; a new reader following its
-  instructions would re-implement what's already built and never look at `tempo-app/`.
+  instructions would re-implement what's already built and never look at `dolbomi-app/`.
 
-**Recommended action:** keep it but add a top banner that points to `tempo-app/`
+**Recommended action:** keep it but add a top banner that points to `dolbomi-app/`
 (the real app), `docs/` (this folder), and clarifies `project/` + `chats/` are design
 origin/reference. Don't delete — it documents the handoff lineage.
 
 ---
 
-## 2. `tempo-app/README.md` — ✅ accurate, keep
+## 2. `dolbomi-app/README.md` — ✅ accurate, keep
 
 This is a solid, current description of the implemented app (stack, run scripts,
 architecture, the frontend↔backend seam, asset fallbacks). It matches the code.
@@ -62,7 +62,7 @@ What they uniquely contain (not in code):
 
 What is **redundant** with the code (no need to re-read for behavior): screen
 layouts, component styling, palette/token decisions, the 3D shader approach — all of
-these are now in `tempo-app/` and described in [ARCHITECTURE.md](./ARCHITECTURE.md).
+these are now in `dolbomi-app/` and described in [ARCHITECTURE.md](./ARCHITECTURE.md).
 
 What is **aspirational / NOT implemented** (the important caveat): the chats and the
 `project/uploads/PRODUCT_SPEC_v3 2.md` describe an **AI companion with 14-day memory,
@@ -92,8 +92,8 @@ AI/feature claims.
 
 | Artifact | Status | Action |
 | --- | --- | --- |
-| Root `README.md` | ⚠️ Stale entry point | Add banner pointing to `tempo-app/` + `docs/`; keep for provenance |
-| `tempo-app/README.md` | ✅ Accurate | Add link to `docs/`; note known gaps; don't overstate "persists" |
+| Root `README.md` | ⚠️ Stale entry point | Add banner pointing to `dolbomi-app/` + `docs/`; keep for provenance |
+| `dolbomi-app/README.md` | ✅ Accurate | Add link to `docs/`; note known gaps; don't overstate "persists" |
 | `chats/` | ✅ Valuable, but aspirational | Keep as design intent; defer to `docs/` for actual behavior |
 | `project/` + PRODUCT_SPEC | ✅ Canonical design source | Keep; same AI-claims caveat |
 | `docs/` (this folder) | ✅ New source of truth for behavior | Maintain alongside code |

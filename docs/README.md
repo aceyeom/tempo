@@ -1,7 +1,7 @@
-# TEMPO — Engineering Documentation
+# DOLBOMI — Engineering Documentation
 
 This `docs/` folder is the **engineering source of truth** for the implemented app
-in [`tempo-app/`](../tempo-app). It was written by reading the code top-to-bottom
+in [`dolbomi-app/`](../dolbomi-app). It was written by reading the code top-to-bottom
 (frontend store, screens, 3D engine, Express API, SQLite schema/seed) and the
 design handoff material (`chats/`, `project/`).
 
@@ -23,7 +23,7 @@ vacation-leave ladder and browse a benefits hub.
 | **[ARCHITECTURE.md](./ARCHITECTURE.md)** | Tech stack, repo layout, frontend↔backend seam, data flow, the 3D creature engine, build/run. |
 | **[WORKFLOW-LOGIC.md](./WORKFLOW-LOGIC.md)** | Every core loop **as it is intended to work** and **as it actually works**: boot/auth, the XP→evolution loop, check-in, quests, opportunities/plans, vacation, benefits, theming/avatar. Heavy focus on logic. |
 | **[LOGIC-GAPS.md](./LOGIC-GAPS.md)** | The catalogue of broken / non-functional / dead logic — "things to fix." Grouped by area, each with severity, the UI's claim, what actually happens, and a `file:line` pointer. **This is the main deliverable.** |
-| **[DOCS-AND-README-AUDIT.md](./DOCS-AND-README-AUDIT.md)** | Assessment of whether `chats/`, the root `README.md`, and `tempo-app/README.md` are still needed, redundant, or stale — with recommended actions. |
+| **[DOCS-AND-README-AUDIT.md](./DOCS-AND-README-AUDIT.md)** | Assessment of whether `chats/`, the root `README.md`, and `dolbomi-app/README.md` are still needed, redundant, or stale — with recommended actions. |
 
 ## TL;DR of findings
 
@@ -38,7 +38,7 @@ vacation-leave ladder and browse a benefits hub.
   live only in a **developer Tweaks panel** that opens via a `postMessage` from a
   design-canvas parent frame — so in a standalone deploy users cannot change them
   at all, and nothing persists.
-- **No account creation.** Only the seeded `demo/tempo` soldier exists; the app
+- **No account creation.** Only the seeded `demo/dolbomi` soldier exists; the app
   auto-logs-in as that one account.
 - **Several controls are no-ops:** the Benefits branch filter (육군/해군/공군/해병대),
   "오늘 밤의 3에 추가", "인증 +보너스", and share buttons do nothing meaningful.

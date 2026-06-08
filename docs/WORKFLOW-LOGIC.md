@@ -1,4 +1,4 @@
-# TEMPO — Workflow & Logic
+# DOLBOMI — Workflow & Logic
 
 This walks every core loop **as designed (intended)** vs **as implemented (actual)**.
 It is deliberately logic-heavy. Each "Actual" note links to the corresponding entry
@@ -15,7 +15,7 @@ Legend: ✅ works · ⚠️ partially works / misleading · ❌ does not work.
 **Actual (✅ for demo, ❌ for real accounts):**
 1. `App` mounts → `bootstrap()` (store.js:27).
 2. `ensureSession()` → if no JWT in `localStorage`, `POST /auth/login` with the
-   hardcoded `demo/tempo` credentials (client.js:33).
+  hardcoded `demo/dolbomi` credentials (client.js:33).
 3. `GET /api/state` → snapshot → store populated; else offline fallback.
 
 There is no login screen, no signup, no logout, no account switching. Everyone is

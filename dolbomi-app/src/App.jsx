@@ -10,6 +10,9 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { OppDetail } from './screens/OppDetail';
 import { OppPlan } from './screens/OppPlan';
 import { AuthScreen } from './screens/AuthScreen';
+import { OnboardingScreen } from './screens/OnboardingScreen';
+import { AddOppScreen } from './screens/AddOppScreen';
+import { AdminScreen } from './screens/AdminScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { CheckInSheet, QuestComplete, Wrapped } from './components/Overlays';
 import { AvatarViewer } from './components/creature/AvatarViewer';
@@ -24,7 +27,7 @@ const TWEAK_DEFAULTS = { istroke: 1.75, game: 20, statMode: '단색', showAi: tr
 
 const PAL_MAP = { '골드': 'gold', '택티컬': 'green', '스틸': 'steel' };
 const PATH_KEYS = new Set(CREATURE_PATHS.map((p) => p.key));
-const ANIMAL_FOR_PATH = { haechi: 'ram', dragon: 'fox', phoenix: 'ram', tiger: 'fox' };
+const ANIMAL_FOR_PATH = { haechi: 'ram', dragon: 'fox' };
 
 const NAV = [
   { key: 'home', label: '홈', icon: 'home' },
@@ -48,6 +51,8 @@ export default function App() {
   const loaded = useStore((s) => s.loaded);
   const authReady = useStore((s) => s.authReady);
   const needsAuth = useStore((s) => s.needsAuth);
+  const online = useStore((s) => s.online);
+  const completeOnboarding = useStore((s) => s.completeOnboarding);
   const soldier = useStore((s) => s.soldier);
   const allStats = useStore((s) => s.stats);
   const quests = useStore((s) => s.tonight);
@@ -121,9 +126,20 @@ export default function App() {
 
   if (!soldier) return null;
 
+  // signed in but profile not set up yet → guided onboarding wizard
+  if (online && !soldier.onboarded) {
+    return (
+      <IOSDevice dark={isDark}>
+        <div className="dolbomi" data-pal={palData} data-theme={theme} style={{ height: '100%', position: 'relative', background: 'var(--bg)' }}>
+          <OnboardingScreen soldier={soldier} onComplete={completeOnboarding} />
+        </div>
+      </IOSDevice>
+    );
+  }
+
   let screen = null;
   if (tab === 'home') screen = <HomeScreen soldier={soldier} stats={allStats} quests={quests} statMode={statMode} mood={mood} showAi={t.showAi} onToggleQuest={toggleQuest} onOpenCheckin={() => setSheet('checkin')} creaturePath={creaturePath} creatureAnimal={creatureAnimal} theme={theme} pulseSignal={pulse} milestones={milestones} onPickPath={pickPath} onOpenOpp={makeQuest} onOpenAvatar={() => setShowAvatar(true)} catalog={catalog} />;
-  else if (tab === 'radar') screen = <RadarScreen onOpenOpp={openOpp} soldier={soldier} />;
+  else if (tab === 'radar') screen = <RadarScreen onOpenOpp={openOpp} onAddOpp={() => setPushed({ type: 'addOpp' })} soldier={soldier} />;
   else if (tab === 'vacation') screen = <VacationScreen onOpenOpp={openOpp} />;
   else if (tab === 'benefits') screen = <BenefitsScreen onMakeQuest={makeQuest} soldier={soldier} />;
   else if (tab === 'profile') screen = <ProfileScreen soldier={soldier} stats={allStats} statMode={statMode} onOpen={(k) => setPushed({ type: k })} creaturePath={creaturePath} creatureAnimal={creatureAnimal} milestones={milestones} pulseSignal={pulse} onPickPath={pickPath} onOpenOpp={makeQuest} onOpenAvatar={() => setShowAvatar(true)} onOpenSettings={() => setPushed({ type: 'settings' })} />;
@@ -131,7 +147,7 @@ export default function App() {
   let pushContent = null, pushTitle = '';
   if (pushed) {
     if (pushed.type === 'opp' && pushedOpp) {
-      pushContent = <OppDetail o={pushedOpp} ms={getMs(pushedOpp)} onOpenPlan={() => openPlan(pushedOpp)} onAddTonight={() => addToTonight(pushedOpp.id)} />;
+      pushContent = <OppDetail o={pushedOpp} ms={getMs(pushedOpp)} onOpenPlan={() => openPlan(pushedOpp)} onAddTonight={() => addToTonight(pushedOpp.id)} onDeleted={() => setPushed(null)} />;
       pushTitle = '기회 상세';
     } else if (pushed.type === 'oppPlan' && pushedOpp) {
       pushContent = <OppPlan o={pushedOpp} ms={getMs(pushedOpp)} onToggle={(mid, sid, v) => storeToggleSubquest(pushedOpp.id, sid, v)} onAddTonight={() => addToTonight(pushedOpp.id)} />;
@@ -139,8 +155,14 @@ export default function App() {
     } else if (pushed.type === 'wrapped') {
       pushContent = <Wrapped />;
       pushTitle = '월간 결산';
+    } else if (pushed.type === 'addOpp') {
+      pushContent = <AddOppScreen onSaved={(id) => setPushed({ type: 'opp', id })} />;
+      pushTitle = '기회 직접 추가';
+    } else if (pushed.type === 'admin') {
+      pushContent = <AdminScreen />;
+      pushTitle = '관리자 · 심사';
     } else if (pushed.type === 'settings') {
-      pushContent = <SettingsScreen />;
+      pushContent = <SettingsScreen onOpenAdmin={() => setPushed({ type: 'admin' })} />;
       pushTitle = '설정';
     }
   }

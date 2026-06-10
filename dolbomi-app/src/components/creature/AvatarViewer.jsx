@@ -10,9 +10,8 @@ function AvatarViewer({ stats, creaturePath, creatureAnimal = 'ram', onSwapPath,
   const level = Math.round(stats.reduce((a, s) => a + s.cur, 0) / stats.length);
   const pathInfo = CREATURE_PATHS.find((p) => p.key === creaturePath) || { ko: '수호신' };
   const companion = creatureAnimal === 'ram' ? 'fox' : 'ram';
-  const tMind = (stats.find((s) => s.key === 'mind') || {}).cur || 0;
-  const tMoney = (stats.find((s) => s.key === 'money') || {}).cur || 0;
-  const headPct = Math.round(Math.min(100, 0.5 * tMind + 0.5 * tMoney));
+  // the single progression signal: how far the marble has turned to gold
+  const goldPct = Math.round(Math.min(100, (stats.reduce((a, s) => a + s.cur, 0) / 600) * 100));
 
   return (
     <div style={{ position: 'absolute', inset: 0, zIndex: 95, background: '#0a0c0a', overflow: 'hidden', animation: 'tmFade .25s both' }}>
@@ -63,20 +62,15 @@ function AvatarViewer({ stats, creaturePath, creatureAnimal = 'ram', onSwapPath,
         </div>
         <ProgressBar pct={evo.pct} height={7} color="var(--accent)" track="rgba(255,255,255,.14)" glow />
 
-        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-          {[{ ic: 'mind', label: '머리 금빛', sub: '지력+재보', pct: headPct },
-            { ic: 'money', label: '가슴·발굽 금빛', sub: '재보', pct: Math.round(Math.min(100, tMoney)) }].map((g) => (
-            <div key={g.ic} style={{ flex: 1, padding: '9px 11px', borderRadius: 12, background: 'rgba(0,0,0,.26)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.08)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {Icon(g.ic, { size: 13, color: '#f0c14a', stroke: 2 })}
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F2F4F6' }}>{g.label}</span>
-                <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: '#f0c14a' }}>{g.pct}%</span>
-              </div>
-              <div style={{ position: 'relative', height: 4, borderRadius: 4, marginTop: 6, background: 'rgba(255,255,255,.1)', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${g.pct}%`, background: 'linear-gradient(90deg,#a76b1d,#f0c14a)', borderRadius: 4 }} />
-              </div>
-            </div>
-          ))}
+        <div style={{ marginTop: 12, padding: '9px 11px', borderRadius: 12, background: 'rgba(0,0,0,.26)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.08)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {Icon('medal', { size: 13, color: '#c99a2e', stroke: 2 })}
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#F2F4F6' }}>황금화 · 발끝부터 머리까지</span>
+            <span className="mono" style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, color: '#c99a2e' }}>{goldPct}%</span>
+          </div>
+          <div style={{ position: 'relative', height: 4, borderRadius: 4, marginTop: 6, background: 'rgba(255,255,255,.1)', overflow: 'hidden' }}>
+            <div style={{ position: 'absolute', inset: '0 auto 0 0', width: `${goldPct}%`, background: 'linear-gradient(90deg,#a76b1d,#c99a2e)', borderRadius: 4 }} />
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '11px 16px', marginTop: 16 }}>

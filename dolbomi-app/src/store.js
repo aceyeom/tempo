@@ -19,6 +19,12 @@ const OFFLINE_SNAPSHOT = {
 };
 
 const PREFS_KEY = 'dolbomi_prefs';
+const LOCAL_OPPS_KEY = 'dolbomi_user_opps';
+function loadLocalOpps() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_OPPS_KEY) || '[]'); } catch { return []; }
+}
+function saveLocalOpps(list) { try { localStorage.setItem(LOCAL_OPPS_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
+
 const DEFAULT_PREFS = { theme: 'dark', palette: '골드', path: 'haechi' };
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; }
@@ -43,7 +49,8 @@ export const useStore = create((set, get) => ({
   async bootstrap() {
     if (!api.hasSupabase) {
       // local dev / SSR with no cloud — straight to the offline demo
-      set({ ...OFFLINE_SNAPSHOT, loaded: true, online: false, authReady: true, needsAuth: false });
+      const local = typeof localStorage === 'undefined' ? [] : loadLocalOpps();
+      set({ ...OFFLINE_SNAPSHOT, catalog: [...staticData.catalog, ...local], loaded: true, online: false, authReady: true, needsAuth: false });
       return;
     }
     api.onAuthChange((session) => get()._onSession(session));
@@ -140,6 +147,53 @@ export const useStore = create((set, get) => ({
     try { await api.checkin(mood, energy); await get().refresh(); } catch { /* ignore */ }
   },
 
+  // ── onboarding ───────────────────────────────────────────────────────
+  async completeOnboarding(fields) {
+    // optimistic so the gate opens instantly
+    set((s) => ({ soldier: { ...s.soldier, ...fields, onboarded: true } }));
+    const prefs = { ...get().prefs, path: fields.path };
+    set({ prefs }); savePrefs(prefs);
+    if (!get().online) return;
+    try { await api.completeOnboarding(fields); await get().refresh(); } catch { /* keep optimistic */ }
+  },
+
+  // ── user-created opportunities (base-local events 등) ────────────────
+  async saveUserOpp(payload, rowId = null) {
+    if (!get().online) {
+      const entry = localOppEntry(payload);
+      const list = [...loadLocalOpps().filter((o) => o.id !== entry.id), entry];
+      saveLocalOpps(list);
+      set((s) => ({ catalog: [...s.catalog.filter((o) => o.id !== entry.id), entry] }));
+      return entry.id;
+    }
+    try {
+      const r = await api.saveUserOpp(payload, rowId);
+      await get().refresh();
+      return r?.id || null;
+    } catch { return null; }
+  },
+  async deleteUserOpp(opp) {
+    set((s) => ({ catalog: s.catalog.filter((o) => o.id !== opp.id) }));
+    if (!get().online) { saveLocalOpps(loadLocalOpps().filter((o) => o.id !== opp.id)); return; }
+    try { await api.deleteUserOpp(opp.rowId); await get().refresh(); } catch { /* keep optimistic */ }
+  },
+  async submitUserOpp(opp) {
+    if (!get().online) return false;
+    try { await api.submitUserOpp(opp.rowId); await get().refresh(); return true; }
+    catch { return false; }
+  },
+
+  // ── admin review queue ───────────────────────────────────────────────
+  async listSubmissions() {
+    if (!get().online) return [];
+    try { return await api.listSubmittedOpps(); } catch { return []; }
+  },
+  async reviewSubmission(rowId, approve) {
+    if (!get().online) return false;
+    try { await api.reviewUserOpp(rowId, approve); await get().refresh(); return true; }
+    catch { return false; }
+  },
+
   async equipTitle(name) {
     set((s) => ({
       titles: s.titles.map((t) => ({ ...t, equipped: t.name === name && t.owned })),
@@ -189,6 +243,31 @@ function recomputeVacation(set, get) {
     return n + (allDone ? (o.reward.maxDays || 0) : 0);
   }, 0);
   set({ vacation: { secured, ladder: vacOpps.map((o) => ({ id: o.id, title: o.title, days: o.reward.finish, fill: o.fill, status: o.status, note: o.reward.note })) } });
+}
+
+// offline mirror of the server-side payload builder in app_save_user_opp —
+// ids assigned, XP fixed by size, never trusted from the form
+const SIZE_XP = { S: 15, M: 38, L: 90 };
+function localOppEntry(p) {
+  const subquests = (p.steps || []).slice(0, 12).map((st, i) => ({
+    id: `s${i + 1}`, text: (st.text || `단계 ${i + 1}`).slice(0, 80),
+    size: SIZE_XP[st.size] ? st.size : 'M', xp: SIZE_XP[st.size] || 38,
+    stat: p.stat || 'edge', done: false, service: null,
+  }));
+  const id = p.id || `u-local-${Date.now()}`;
+  const deadline = p.deadline || new Date(Date.now() + 60 * 86400000).toISOString().slice(0, 10);
+  return {
+    id, cat: p.cat || '교육', stat: p.stat || 'edge', title: (p.title || '').slice(0, 80), hot: false,
+    sub: (p.sub || '직접 등록한 기회').slice(0, 80), what: (p.what || '').slice(0, 400),
+    eligibility: p.eligibility || '본인 확인', applyWhere: p.applyWhere || '',
+    source: '직접 등록', verified: '', cost: p.cost || '무료', deadline, started: false,
+    reward: { kind: p.reward?.kind || 'cert', finish: p.reward?.finish || '완료',
+      maxDays: Math.min(10, p.reward?.maxDays || 0), label: p.reward?.finish || '완료', note: '직접 등록 · 부대 내규 확인' },
+    why: (p.why || '').slice(0, 160), expectedPct: 0, status: 'on', tags: p.tags || [],
+    milestones: [{ id: 'm1', title: '실행', date: '~마감', subquests }],
+    fill: 0, dday: staticData.daysUntil(deadline), img: staticData.fallbackImg(id),
+    mine: true, shareStatus: 'private',
+  };
 }
 
 function addTonightLocal(set, get, oppId) {

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Icon } from '../icons';
 import { Card, Tag, Btn, SectionHeader, IconChip } from '../components/ui';
 import { cats } from '../data';
+import { useStore } from '../store';
 import { OppProgressBar } from './OppPlan';
 
 const HEADER = {
@@ -109,7 +110,45 @@ function InfoRow({ k, v, vColor = 'var(--ink)', icon }) {
   );
 }
 
-export function OppDetail({ o, ms, onOpenPlan, onAddTonight }) {
+// owner controls for a user-created opportunity: share with everyone
+// (admin reviews it) or delete it
+function MineActions({ o, onDeleted }) {
+  const online = useStore((s) => s.online);
+  const submitUserOpp = useStore((s) => s.submitUserOpp);
+  const deleteUserOpp = useStore((s) => s.deleteUserOpp);
+  const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const submitted = o.shareStatus === 'submitted';
+
+  return (
+    <Card pad={15} style={{ marginTop: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <Tag tone="accent" icon="pin">내가 등록한 기회</Tag>
+        {submitted && <Tag tone="positive">공유 심사 중</Tag>}
+      </div>
+      <div style={{ display: 'flex', gap: 9 }}>
+        {online && !submitted && (
+          <Btn tone="soft" size="sm" icon="share" onClick={async () => {
+            if (busy) return; setBusy(true); await submitUserOpp(o); setBusy(false);
+          }}>{busy ? '잠시만…' : '모두와 공유 신청'}</Btn>
+        )}
+        <Btn tone="ghost" size="sm" icon="x" onClick={async () => {
+          if (!confirmDel) { setConfirmDel(true); return; }
+          await deleteUserOpp(o); if (onDeleted) onDeleted();
+        }} style={confirmDel ? { color: 'var(--danger, #e05252)' } : {}}>
+          {confirmDel ? '정말 삭제할까?' : '삭제'}
+        </Btn>
+      </div>
+      {online && !submitted && (
+        <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 10, lineHeight: 1.5 }}>
+          공유를 신청하면 관리자 확인 후 모든 장병의 레이더에 올라간다.
+        </div>
+      )}
+    </Card>
+  );
+}
+
+export function OppDetail({ o, ms, onOpenPlan, onAddTonight, onDeleted }) {
   const done = ms.reduce((n, m) => n + m.subquests.filter((s) => s.done).length, 0);
   const total = ms.reduce((n, m) => n + m.subquests.length, 0);
   const nextM = ms.find((m) => m.subquests.some((s) => !s.done));
@@ -181,6 +220,8 @@ export function OppDetail({ o, ms, onOpenPlan, onAddTonight }) {
       </Card>
 
       <Btn tone="ghost" icon="plus" onClick={onAddTonight}>오늘 밤의 3에 추가</Btn>
+
+      {o.mine && <MineActions o={o} onDeleted={onDeleted} />}
     </div>
   );
 }

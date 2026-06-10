@@ -2,10 +2,8 @@ import React, { useRef, useEffect } from 'react';
 import { create } from '../../3d/creature';
 
 const PATHS = [
-  { key: 'haechi',  ko: '해치',   en: 'HAECHI',  desc: '정의의 수호 · 균형' },
-  { key: 'dragon',  ko: '청룡',   en: 'DRAGON',  desc: '비상의 기개 · 도전' },
-  { key: 'phoenix', ko: '봉황',   en: 'PHOENIX', desc: '재생의 의지 · 회복' },
-  { key: 'tiger',   ko: '백호',   en: 'TIGER',   desc: '용맹의 힘 · 추진' },
+  { key: 'haechi', ko: '해치', en: 'HAECHI', desc: '정의의 수호 · 균형' },
+  { key: 'dragon', ko: '청룡', en: 'DRAGON', desc: '비상의 기개 · 도전' },
 ];
 
 const ANIMALS = [

@@ -33,7 +33,7 @@ out.push('');
 // opportunities + milestones + subquests
 out.push('-- opportunity catalog');
 data.catalog.forEach((o, oi) => {
-  out.push(`insert into opportunities (id, cat, stat, title, hot, sub, what, eligibility, apply_where, source, verified, cost, deadline, unlock_dday, started, reward, why, expected_pct, status, img, ord) values (${q(o.id)}, ${q(o.cat)}, ${q(o.stat)}, ${q(o.title)}, ${b(o.hot)}, ${q(o.sub)}, ${q(o.what)}, ${q(o.eligibility)}, ${q(o.applyWhere)}, ${q(o.source)}, ${q(o.verified)}, ${q(o.cost)}, ${q(o.deadline)}, ${n(o.unlockDday)}, ${b(o.started)}, ${j(o.reward)}, ${q(o.why)}, ${n(o.expectedPct)}, ${q(o.status)}, ${q(o.img)}, ${oi});`);
+  out.push(`insert into opportunities (id, cat, stat, title, hot, sub, what, eligibility, apply_where, source, verified, cost, deadline, unlock_dday, started, reward, why, expected_pct, status, img, ord, tags) values (${q(o.id)}, ${q(o.cat)}, ${q(o.stat)}, ${q(o.title)}, ${b(o.hot)}, ${q(o.sub)}, ${q(o.what)}, ${q(o.eligibility)}, ${q(o.applyWhere)}, ${q(o.source)}, ${q(o.verified)}, ${q(o.cost)}, ${q(o.deadline)}, ${n(o.unlockDday)}, ${b(o.started)}, ${j(o.reward)}, ${q(o.why)}, ${n(o.expectedPct)}, ${q(o.status)}, ${q(o.img)}, ${oi}, ${j(o.tags || [])});`);
   o.milestones.forEach((m, mi) => {
     out.push(`insert into milestones (opp_id, id, title, date_label, ord) values (${q(o.id)}, ${q(m.id)}, ${q(m.title)}, ${q(m.date)}, ${mi});`);
     m.subquests.forEach((s, si) => {
@@ -60,7 +60,7 @@ out.push('');
 // quest pool
 out.push('-- quest pool (check-in regenerates "오늘 밤의 3" from these by energy)');
 data.questPool.forEach((p) => {
-  out.push(`insert into quest_pool (stat, txt, min, xp, hard) values (${q(p.stat)}, ${q(p.txt)}, ${n(p.min)}, ${n(p.xp)}, ${b(p.hard)});`);
+  out.push(`insert into quest_pool (stat, txt, min, xp, hard, tags) values (${q(p.stat)}, ${q(p.txt)}, ${n(p.min)}, ${n(p.xp)}, ${b(p.hard)}, ${j(p.tags || [])});`);
 });
 out.push('');
 

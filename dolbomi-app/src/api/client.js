@@ -56,12 +56,38 @@ function dayLabel(d, now = new Date()) {
 }
 const timeLabel = (d) => seoul(d, { hour: '2-digit', minute: '2-digit', hour12: false });
 
+// map a community `opportunities` row (+ its milestones/subquests rows) into
+// the catalog entry shape the SPA consumes
+function entryFromRefRows(o, msRows, sqRows) {
+  const milestones = (msRows || [])
+    .filter((m) => m.opp_id === o.id)
+    .sort((a, b) => a.ord - b.ord)
+    .map((m) => ({
+      id: m.id, title: m.title, date: m.date_label,
+      subquests: (sqRows || [])
+        .filter((s) => s.opp_id === o.id && s.milestone_id === m.id)
+        .sort((a, b) => a.ord - b.ord)
+        .map((s) => ({ id: s.id, text: s.text, size: s.size, xp: s.xp, stat: s.stat, done: false, service: s.service || null })),
+    }));
+  return {
+    id: o.id, cat: o.cat, stat: o.stat, title: o.title, hot: !!o.hot, sub: o.sub,
+    what: o.what, eligibility: o.eligibility, applyWhere: o.apply_where, source: o.source,
+    verified: o.verified, cost: o.cost, deadline: o.deadline, unlockDday: o.unlock_dday,
+    started: !!o.started, reward: o.reward || {}, why: o.why, expectedPct: o.expected_pct || 0,
+    status: o.status || 'on', img: o.img || null, tags: o.tags || [], community: true,
+    milestones,
+  };
+}
+
 // ── snapshot assembly (reference defs ⨯ per-user state) ─────────────────
-export function assembleSnapshot({ profile, statsRows, tonightRows, subsRows, titlesRows, actRows }) {
+export function assembleSnapshot({ profile, statsRows, tonightRows, subsRows, titlesRows, actRows, communityOpps = [], userOppRows = [] }) {
   const dischargeDate = profile.discharge_date;
   const soldier = {
     name: profile.name, rank: profile.rank, rankEn: profile.rank_en, title: profile.title,
-    unit: profile.unit, branch: profile.branch,
+    unit: profile.unit, branch: profile.branch, mos: profile.mos || '',
+    interests: Array.isArray(profile.interests) ? profile.interests : [],
+    onboarded: !!profile.onboarded,
+    role: profile.role || 'user',
     enlistDate: profile.enlist_date, dischargeDate,
     dday: ref.daysUntil(dischargeDate),
     served: ref.servedBetween(profile.enlist_date, dischargeDate),
@@ -82,7 +108,8 @@ export function assembleSnapshot({ profile, statsRows, tonightRows, subsRows, ti
   for (const r of subsRows || []) sub[`${r.opp_id}/${r.subquest_id}`] = r;
   const soldierDday = soldier.dday;
 
-  const catalog = ref.catalog.map((o) => {
+  // bundle catalog + admin-published community entries + the user's own
+  const buildEntry = (o) => {
     let totXp = 0, doneXp = 0;
     const milestones = o.milestones.map((m) => ({
       ...m,
@@ -96,8 +123,20 @@ export function assembleSnapshot({ profile, statsRows, tonightRows, subsRows, ti
     }));
     const fill = Math.round((doneXp / (totXp || 1)) * 100);
     const locked = o.unlockDday != null && soldierDday > o.unlockDday;
-    return { ...o, fill, milestones, locked };
-  });
+    const dday = o.deadline ? ref.daysUntil(o.deadline) : 0;
+    return { ...o, fill, milestones, locked, dday, img: o.img || ref.fallbackImg(o.id) };
+  };
+
+  const userOpps = (userOppRows || [])
+    .filter((r) => r.status !== 'published') // published copies live in the community set
+    .map((r) => ({ ...r.payload, mine: true, shareStatus: r.status, rowId: r.id }));
+
+  const bundleIds = new Set(ref.catalog.map((o) => o.id));
+  const catalog = [
+    ...ref.catalog,
+    ...(communityOpps || []).filter((o) => !bundleIds.has(o.id)),
+    ...userOpps,
+  ].map(buildEntry);
 
   const benefits = ref.benefits;
 
@@ -146,16 +185,27 @@ export async function fetchSnapshot() {
   // idempotent: provisions profile + stats + tonight on first load
   await supabase.rpc('app_ensure_profile');
 
-  const [profile, statsRows, tonightRows, subsRows, titlesRows, actRows] = await Promise.all([
+  const [profile, statsRows, tonightRows, subsRows, titlesRows, actRows, userOppRows, commOpps, commMs, commSq] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', user.id).single(),
     supabase.from('stats').select('*').eq('user_id', user.id).order('ord'),
     supabase.from('tonight_quests').select('*').eq('user_id', user.id).order('ord'),
     supabase.from('user_subquests').select('*').eq('user_id', user.id),
     supabase.from('user_titles').select('*').eq('user_id', user.id),
     supabase.from('activity').select('*').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+    supabase.from('user_opportunities').select('*').eq('user_id', user.id).order('created_at'),
+    // community entries published by an admin carry a 'c-' id prefix
+    supabase.from('opportunities').select('*').like('id', 'c-%').order('ord'),
+    supabase.from('milestones').select('*').like('opp_id', 'c-%'),
+    supabase.from('subquests').select('*').like('opp_id', 'c-%'),
   ]);
   const err = profile.error || statsRows.error || tonightRows.error || subsRows.error || titlesRows.error || actRows.error;
   if (err) throw err;
+
+  // community/user-opp reads are best-effort: an un-migrated DB must not
+  // break the whole snapshot
+  const communityOpps = (commOpps.error || commMs.error || commSq.error)
+    ? []
+    : (commOpps.data || []).map((o) => entryFromRefRows(o, commMs.data, commSq.data));
 
   return assembleSnapshot({
     profile: profile.data,
@@ -164,6 +214,8 @@ export async function fetchSnapshot() {
     subsRows: subsRows.data,
     titlesRows: titlesRows.data,
     actRows: actRows.data,
+    communityOpps,
+    userOppRows: userOppRows.error ? [] : (userOppRows.data || []),
   });
 }
 
@@ -178,6 +230,21 @@ export const toggleSubquest = (oppId, subId, verified) => rpc('app_toggle_subque
 export const addTonight     = (oppId)                  => rpc('app_add_tonight', { p_opp_id: oppId });
 export const checkin        = (mood, energy)           => rpc('app_checkin', { p_mood: mood, p_energy: energy ?? null });
 export const equipTitle     = (name)                   => rpc('app_equip_title', { p_name: name });
+export const completeOnboarding = (fields)             => rpc('app_complete_onboarding', { p: fields });
+
+// ── user-created opportunities ──────────────────────────────────────────
+export const saveUserOpp   = (payload, rowId = null)   => rpc('app_save_user_opp', { p_payload: payload, p_id: rowId });
+export const deleteUserOpp = (rowId)                   => rpc('app_delete_user_opp', { p_id: rowId });
+export const submitUserOpp = (rowId)                   => rpc('app_submit_user_opp', { p_id: rowId });
+export const reviewUserOpp = (rowId, approve)          => rpc('app_review_user_opp', { p_id: rowId, p_approve: !!approve });
+
+// admin: submissions awaiting review (RLS lets admins read everyone's rows)
+export async function listSubmittedOpps() {
+  const { data, error } = await supabase.from('user_opportunities')
+    .select('*').eq('status', 'submitted').order('updated_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
 
 export async function setPrefs(prefs) {
   const { data: { user } } = await supabase.auth.getUser();

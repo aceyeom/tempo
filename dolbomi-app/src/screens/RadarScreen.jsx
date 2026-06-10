@@ -1,18 +1,34 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Icon } from '../icons';
 import { Card, ProgressBar, IconChip } from '../components/ui';
 import { STATUS } from '../icons';
 import { cats, radarCats } from '../data';
 import { useStore } from '../store';
 
-export function RadarScreen({ onOpenOpp, soldier }) {
+export function RadarScreen({ onOpenOpp, onAddOpp, soldier }) {
   const catalog = useStore((s) => s.catalog);
   const storeSoldier = useStore((s) => s.soldier);
   const me = soldier || storeSoldier;
   const [filter, setFilter] = useState('전체');
   const catList = radarCats;
-  const list = filter === '전체' ? catalog : catalog.filter((o) => o.cat === filter);
+  const interests = useMemo(() => me?.interests || [], [me]);
+
+  // 맞춤 우선: interest-matching first, then by closest (unlocked) deadline —
+  // user-created entries always pinned on top so they're easy to find again
+  const list = useMemo(() => {
+    const matches = (o) => (o.tags || []).some((t) => interests.includes(t));
+    return catalog
+      .filter((o) => filter === '전체' || o.cat === filter)
+      .map((o) => ({ o, m: matches(o) }))
+      .sort((a, b) =>
+        (b.o.mine === true) - (a.o.mine === true)
+        || b.m - a.m
+        || (a.o.locked === true) - (b.o.locked === true)
+        || a.o.dday - b.o.dday);
+  }, [catalog, filter, interests]);
+
   const urgent = catalog.filter((o) => !o.locked && o.dday <= 14).length;
+  const matched = catalog.filter((o) => (o.tags || []).some((t) => interests.includes(t))).length;
 
   return (
     <div className="tm-rise">
@@ -21,9 +37,16 @@ export function RadarScreen({ onOpenOpp, soldier }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700 }}>너에게 맞는 기회 {catalog.length}개</div>
           <div style={{ fontSize: 11.5, color: 'var(--sub)', marginTop: 2 }}>
-            {(me?.branch || '육군')} · {(me?.rank || '병사')} 프로필 기준 · <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{urgent}개 마감 임박</span>
+            {interests.length ? <>관심사 일치 <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{matched}개</span> · </> : <>{me?.branch || '육군'} · {me?.rank || '병사'} 기준 · </>}
+            <span style={{ color: 'var(--accent)', fontWeight: 700 }}>{urgent}개 마감 임박</span>
           </div>
         </div>
+        <button onClick={onAddOpp} className="tm-tap" aria-label="기회 직접 추가" style={{ border: 'none', cursor: 'pointer', flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 5, padding: '9px 13px', borderRadius: 999,
+          background: 'rgba(var(--accent-rgb),.13)', color: 'var(--accent)', fontSize: 12, fontWeight: 800, fontFamily: 'inherit',
+          boxShadow: 'inset 0 0 0 1px rgba(var(--accent-rgb),.3)' }}>
+          {Icon('plus', { size: 14, color: 'var(--accent)', stroke: 2.4 })}직접 추가
+        </button>
       </Card>
 
       <div style={{ display: 'flex', gap: 7, overflowX: 'auto', margin: '0 -20px 16px', padding: '0 20px 2px' }}>
@@ -39,15 +62,15 @@ export function RadarScreen({ onOpenOpp, soldier }) {
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-        {list.map((o) => <OppCard key={o.id} o={o} onClick={() => onOpenOpp(o)} />)}
+        {list.map(({ o, m }) => <OppCard key={o.id} o={o} matched={m} onClick={() => onOpenOpp(o)} />)}
       </div>
     </div>
   );
 }
 
-function OppCard({ o, onClick }) {
+function OppCard({ o, matched, onClick }) {
   const cc = (cats[o.cat] || { c: 'var(--accent)' }).c;
-  const st = STATUS[o.status];
+  const st = STATUS[o.status] || STATUS.on;
   const next = o.milestones.flatMap((m) => m.subquests).find((s) => !s.done);
   const urgent = !o.locked && o.dday <= 14;
   const rIcon = o.reward.kind === '휴가' ? 'palm' : o.reward.kind === 'money' ? 'wallet' : o.reward.kind === 'cert' ? 'medal' : 'trophy';
@@ -62,7 +85,9 @@ function OppCard({ o, onClick }) {
             padding: '4px 9px', borderRadius: 999, background: 'rgba(10,11,13,.46)', boxShadow: `inset 0 0 0 1px ${cc}` }}>
             <span style={{ width: 6, height: 6, borderRadius: 999, background: cc }} />{o.cat}
           </span>
-          {o.hot && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: '#fff', padding: '4px 8px', borderRadius: 999, background: 'rgba(var(--accent-rgb),.92)' }}>{Icon('flame', { size: 11, color: '#fff', stroke: 2.4 })}주목</span>}
+          {o.mine && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: '#fff', padding: '4px 8px', borderRadius: 999, background: 'rgba(10,11,13,.62)' }}>{Icon('pin', { size: 11, color: '#fff', stroke: 2.2 })}내 등록</span>}
+          {!o.mine && matched && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: '#fff', padding: '4px 8px', borderRadius: 999, background: 'rgba(var(--positive-rgb),.88)' }}>{Icon('heart', { size: 11, color: '#fff', stroke: 2.2 })}맞춤</span>}
+          {!o.mine && !matched && o.hot && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 800, color: '#fff', padding: '4px 8px', borderRadius: 999, background: 'rgba(var(--accent-rgb),.92)' }}>{Icon('flame', { size: 11, color: '#fff', stroke: 2.4 })}주목</span>}
           {o.locked ? (
             <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 800, color: '#fff',
               padding: '4px 9px', borderRadius: 999, background: 'rgba(10,11,13,.62)' }}>

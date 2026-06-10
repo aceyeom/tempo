@@ -18,12 +18,13 @@ function Pill({ on, onClick, children }) {
   );
 }
 
-export function SettingsScreen() {
+export function SettingsScreen({ onOpenAdmin }) {
   const prefs = useStore((s) => s.prefs);
   const setPref = useStore((s) => s.setPref);
   const signOut = useStore((s) => s.signOut);
   const online = useStore((s) => s.online);
   const soldier = useStore((s) => s.soldier);
+  const isAdmin = soldier?.role === 'admin';
 
   return (
     <div className="tm-rise">
@@ -77,7 +78,9 @@ export function SettingsScreen() {
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 14, fontWeight: 700 }}>{soldier?.name || '병사'}</div>
-            <div style={{ fontSize: 11.5, color: 'var(--sub)' }}>{soldier?.rank} · {soldier?.branch || ''} · {soldier?.unit}</div>
+            <div style={{ fontSize: 11.5, color: 'var(--sub)' }}>
+              {soldier?.rank} · {soldier?.branch || ''}{soldier?.mos ? ` ${soldier.mos}` : ''} · {soldier?.unit}
+            </div>
           </div>
           <span style={{ fontSize: 10.5, fontWeight: 700, padding: '4px 9px', borderRadius: 999,
             background: online ? 'rgba(var(--positive-rgb),.14)' : 'var(--surface2)',
@@ -87,6 +90,15 @@ export function SettingsScreen() {
         </div>
         {online && <Btn tone="ghost" icon="arrowR" onClick={signOut}>로그아웃</Btn>}
       </Card>
+
+      {isAdmin && onOpenAdmin && (
+        <>
+          <SectionHeader caption="장병이 공유 신청한 기회를 심사해 전체에 공개" style={{ marginTop: 16 }}>관리자</SectionHeader>
+          <Card pad={16}>
+            <Btn tone="soft" icon="badgeCheck" onClick={onOpenAdmin}>심사 대기열 열기</Btn>
+          </Card>
+        </>
+      )}
 
       <div style={{ textAlign: 'center', fontSize: 10.5, color: 'var(--faint)', marginTop: 22 }}>DOLBOMI · 프로토타입 · 데모</div>
     </div>

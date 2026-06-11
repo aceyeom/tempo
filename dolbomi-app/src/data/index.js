@@ -23,6 +23,10 @@ export function ddayLabel(iso, from = new Date()) {
   const n = daysUntil(iso, from);
   return n === 0 ? 'D-day' : `D-${n}`;
 }
+// 'YYYY-MM-DD' for the current Asia/Seoul day — matches profiles.last_checkin_date
+export function seoulToday(from = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(from);
+}
 
 // ── Soldier profile (demo persona / offline fallback) ─────────────────
 // Real users get their own profile from Supabase. `dday`/`served` are derived
@@ -46,6 +50,7 @@ export const soldier = {
   branch: '육군',
   mos: '정보',
   interests: ['coding', 'finance', 'fitness'],
+  goal: 'career',
   onboarded: true, // the demo persona is fully set up; real accounts run the wizard
   role: 'user',
   enlistDate: ENLIST_DATE,
@@ -100,15 +105,31 @@ export const BRANCHES = Object.keys(BRANCH_INFO);
 // ── 6 stats ───────────────────────────────────────────────────────────
 // `base` is the starting value a brand-new account gets (used by the Supabase
 // new-user trigger); `cur` is the demo persona's value for the offline fallback.
+// base = 0 on purpose: every pixel of a real user's bars is something they did.
 export const stats = [
-  { key: 'body',   mil: '전투력', en: 'BODY',   real: '체력·건강',   cur: 62, tgt: 80, base: 20 },
-  { key: 'mind',   mil: '정신력', en: 'MIND',   real: '멘탈·집중',   cur: 55, tgt: 75, base: 18 },
-  { key: 'money',  mil: '자산력', en: 'MONEY',  real: '자산·금융',   cur: 48, tgt: 70, base: 12 },
-  { key: 'craft',  mil: '숙련도', en: 'CRAFT',  real: '기술·자격',   cur: 71, tgt: 90, base: 22 },
-  { key: 'people', mil: '지휘력', en: 'PEOPLE', real: '리더십·소통', cur: 40, tgt: 65, base: 14 },
-  { key: 'edge',   mil: '담력',   en: 'EDGE',   real: '용기·도전',   cur: 28, tgt: 60, base: 8 },
+  { key: 'body',   mil: '전투력', en: 'BODY',   real: '체력·건강',   cur: 62, tgt: 80, base: 0 },
+  { key: 'mind',   mil: '정신력', en: 'MIND',   real: '멘탈·집중',   cur: 55, tgt: 75, base: 0 },
+  { key: 'money',  mil: '자산력', en: 'MONEY',  real: '자산·금융',   cur: 48, tgt: 70, base: 0 },
+  { key: 'craft',  mil: '숙련도', en: 'CRAFT',  real: '기술·자격',   cur: 71, tgt: 90, base: 0 },
+  { key: 'people', mil: '지휘력', en: 'PEOPLE', real: '리더십·소통', cur: 40, tgt: 65, base: 0 },
+  { key: 'edge',   mil: '담력',   en: 'EDGE',   real: '용기·도전',   cur: 28, tgt: 60, base: 0 },
 ];
 export const STAT_CAP = 100; // a stat's `cur` is clamped to this; six caps = 600 = top band
+
+// ── Goal templates (전역 목표 아키타입) ────────────────────────────────
+// Picked at onboarding; sets the per-stat discharge-day targets (`stats.tgt`)
+// that draw the Gap on the profile Receipt. Individually adjustable later.
+export const GOAL_TEMPLATES = [
+  { key: 'career',  ko: '취업 준비형', icon: 'briefcase', desc: '자격증·자소서·소통 — 전역하자마자 일하러 간다',
+    targets: { body: 50, mind: 70, money: 50, craft: 85, people: 75, edge: 60 } },
+  { key: 'fitness', ko: '체력 단련형', icon: 'body', desc: '몸을 만들어서 나간다 — 입대 전보다 강하게',
+    targets: { body: 90, mind: 60, money: 40, craft: 50, people: 55, edge: 65 } },
+  { key: 'asset',   ko: '자산 형성형', icon: 'wallet', desc: '적금·금융 지식 — 통장과 머리에 자본을 채운다',
+    targets: { body: 50, mind: 55, money: 90, craft: 60, people: 50, edge: 55 } },
+  { key: 'founder', ko: '창업 도전형', icon: 'zap', desc: '아이디어·실행·담력 — 겁 없이 들이받는다',
+    targets: { body: 55, mind: 65, money: 70, craft: 70, people: 70, edge: 90 } },
+];
+export const goalTemplateOf = (key) => GOAL_TEMPLATES.find((g) => g.key === key) || null;
 
 export function won(n) {
   return '₩' + n.toLocaleString('en-US');
@@ -237,18 +258,21 @@ export const benefits = [
 // ── Titles (칭호) ─────────────────────────────────────────────────────
 // `req` drives automatic awarding (LOGIC-GAPS J1). Mirrored into Supabase
 // `titles` and evaluated by the award_titles() SQL routine.
-//   { kind:'stat', stat, val } | { kind:'streak', val } | { kind:'manual' }
+//   { kind:'stat', stat, val } | { kind:'streak', val } | { kind:'total', val } | { kind:'manual' }
 export const titles = [
+  { name: '첫 걸음', desc: '총 경험치 10 — 시작했다', rarity: '보유', req: { kind: 'total', val: 10 } },
   { name: '불굴', desc: '14일 연속 출석', rarity: '보유', req: { kind: 'streak', val: 14 } },
   { name: '철벽', desc: '전투력 60 돌파', rarity: '보유', req: { kind: 'stat', stat: 'body', val: 60 } },
   { name: '숙련의 증표', desc: '숙련도 70 돌파', rarity: '보유', req: { kind: 'stat', stat: 'craft', val: 70 } },
   { name: '새벽의 독서가', desc: '정신력 60 돌파', rarity: '보유', req: { kind: 'stat', stat: 'mind', val: 60 } },
   { name: '분대의 기둥', desc: '지휘력 55 돌파', rarity: '잠김', req: { kind: 'stat', stat: 'people', val: 55 } },
+  { name: '정예', desc: '총 경험치 300 · 정예 진화', rarity: '잠김', req: { kind: 'total', val: 300 } },
+  { name: '수호신의 주인', desc: '총 경험치 480 · 최종 진화', rarity: '잠김', req: { kind: 'total', val: 480 } },
   { name: '심연의 담력', desc: '담력 60 돌파 (최고 난도)', rarity: '잠김', legendary: true, req: { kind: 'stat', stat: 'edge', val: 60 } },
 ];
 
 // Title ownership for the OFFLINE persona (online users earn these by logic).
-const OFFLINE_OWNED = { '불굴': true, '철벽': true, '숙련의 증표': true };
+const OFFLINE_OWNED = { '첫 걸음': true, '불굴': true, '철벽': true, '숙련의 증표': true };
 export const offlineTitles = titles.map((t) => ({
   name: t.name, desc: t.desc, rarity: t.rarity, legendary: !!t.legendary,
   owned: !!OFFLINE_OWNED[t.name], equipped: t.name === soldier.title,

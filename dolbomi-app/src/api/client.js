@@ -93,6 +93,8 @@ export function assembleSnapshot({ profile, statsRows, tonightRows, subsRows, ti
     served: ref.servedBetween(profile.enlist_date, dischargeDate),
     streak: profile.streak || 0,
     lastMood: profile.last_mood || null,
+    lastCheckinDate: profile.last_checkin_date || null,
+    goal: profile.goal || '',
   };
 
   const stats = (statsRows || []).map((s) => ({
@@ -231,6 +233,7 @@ export const addTonight     = (oppId)                  => rpc('app_add_tonight',
 export const checkin        = (mood, energy)           => rpc('app_checkin', { p_mood: mood, p_energy: energy ?? null });
 export const equipTitle     = (name)                   => rpc('app_equip_title', { p_name: name });
 export const completeOnboarding = (fields)             => rpc('app_complete_onboarding', { p: fields });
+export const setTargets     = (targets, goal)          => rpc('app_set_targets', { p: { targets, goal } });
 
 // ── user-created opportunities ──────────────────────────────────────────
 export const saveUserOpp   = (payload, rowId = null)   => rpc('app_save_user_opp', { p_payload: payload, p_id: rowId });

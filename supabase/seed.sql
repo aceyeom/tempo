@@ -4,12 +4,12 @@
 truncate quest_pool, benefits, subquests, milestones, opportunities, titles, stat_defs restart identity cascade;
 
 -- stat definitions (per-stat target + new-account starting value)
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('body', '전투력', 'BODY', '체력·건강', 80, 20, 0);
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('mind', '정신력', 'MIND', '멘탈·집중', 75, 18, 1);
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('money', '자산력', 'MONEY', '자산·금융', 70, 12, 2);
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('craft', '숙련도', 'CRAFT', '기술·자격', 90, 22, 3);
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('people', '지휘력', 'PEOPLE', '리더십·소통', 65, 14, 4);
-insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('edge', '담력', 'EDGE', '용기·도전', 60, 8, 5);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('body', '전투력', 'BODY', '체력·건강', 80, 0, 0);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('mind', '정신력', 'MIND', '멘탈·집중', 75, 0, 1);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('money', '자산력', 'MONEY', '자산·금융', 70, 0, 2);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('craft', '숙련도', 'CRAFT', '기술·자격', 90, 0, 3);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('people', '지휘력', 'PEOPLE', '리더십·소통', 65, 0, 4);
+insert into stat_defs (key, mil, en, real, tgt, base, ord) values ('edge', '담력', 'EDGE', '용기·도전', 60, 0, 5);
 
 -- opportunity catalog
 insert into opportunities (id, cat, stat, title, hot, sub, what, eligibility, apply_where, source, verified, cost, deadline, unlock_dday, started, reward, why, expected_pct, status, img, ord, tags) values ('startup', '대회', 'edge', '육군창업경진대회', true, 'K-스타트업 전국 본선 연계 · 2~5인 팀', '육군이 여는 창업 경진대회. 본선 수상하면 포상휴가에 상금, 창업멘토링캠프까지.', '육군 (장교·부사관·병) · 2~5인 팀 (단독 불가)', 'army-startup.co.kr', '육군본부 · army-startup.co.kr', '2026.05', '무료', '2026-07-25', null, false, '{"kind":"휴가","finish":"+2~5일","maxDays":5,"label":"본선 수상 포상휴가 2~5일 + 상금","note":"부대 내규 · 본선 수상자 기준"}'::jsonb, '입상 = 포상휴가. 네 아이디어로 휴가 따자.', 38, 'tight', 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=720&h=420&fit=crop&q=72', 0, '["startup"]'::jsonb);
@@ -385,12 +385,15 @@ insert into benefits (id, title, icon, tone, value, where_, branches, opp_id, he
 insert into benefits (id, title, icon, tone, value, where_, branches, opp_id, headline, ord) values ('b11', '제대군인·청년 지원', 'briefcase', 'neutral', '취업·정책 연계 (전역 후)', '셀프 필터 → 포털', '["전군"]'::jsonb, null, false, 10);
 
 -- titles (req drives automatic awarding)
-insert into titles (name, descr, rarity, legendary, req, ord) values ('불굴', '14일 연속 출석', '보유', false, '{"kind":"streak","val":14}'::jsonb, 0);
-insert into titles (name, descr, rarity, legendary, req, ord) values ('철벽', '전투력 60 돌파', '보유', false, '{"kind":"stat","stat":"body","val":60}'::jsonb, 1);
-insert into titles (name, descr, rarity, legendary, req, ord) values ('숙련의 증표', '숙련도 70 돌파', '보유', false, '{"kind":"stat","stat":"craft","val":70}'::jsonb, 2);
-insert into titles (name, descr, rarity, legendary, req, ord) values ('새벽의 독서가', '정신력 60 돌파', '보유', false, '{"kind":"stat","stat":"mind","val":60}'::jsonb, 3);
-insert into titles (name, descr, rarity, legendary, req, ord) values ('분대의 기둥', '지휘력 55 돌파', '잠김', false, '{"kind":"stat","stat":"people","val":55}'::jsonb, 4);
-insert into titles (name, descr, rarity, legendary, req, ord) values ('심연의 담력', '담력 60 돌파 (최고 난도)', '잠김', true, '{"kind":"stat","stat":"edge","val":60}'::jsonb, 5);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('첫 걸음', '총 경험치 10 — 시작했다', '보유', false, '{"kind":"total","val":10}'::jsonb, 0);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('불굴', '14일 연속 출석', '보유', false, '{"kind":"streak","val":14}'::jsonb, 1);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('철벽', '전투력 60 돌파', '보유', false, '{"kind":"stat","stat":"body","val":60}'::jsonb, 2);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('숙련의 증표', '숙련도 70 돌파', '보유', false, '{"kind":"stat","stat":"craft","val":70}'::jsonb, 3);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('새벽의 독서가', '정신력 60 돌파', '보유', false, '{"kind":"stat","stat":"mind","val":60}'::jsonb, 4);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('분대의 기둥', '지휘력 55 돌파', '잠김', false, '{"kind":"stat","stat":"people","val":55}'::jsonb, 5);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('정예', '총 경험치 300 · 정예 진화', '잠김', false, '{"kind":"total","val":300}'::jsonb, 6);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('수호신의 주인', '총 경험치 480 · 최종 진화', '잠김', false, '{"kind":"total","val":480}'::jsonb, 7);
+insert into titles (name, descr, rarity, legendary, req, ord) values ('심연의 담력', '담력 60 돌파 (최고 난도)', '잠김', true, '{"kind":"stat","stat":"edge","val":60}'::jsonb, 8);
 
 -- quest pool (check-in regenerates "오늘 밤의 3" from these by energy)
 insert into quest_pool (stat, txt, min, xp, hard, tags) values ('body', '팔굽혀펴기 50개', 5, 3, false, '["fitness"]'::jsonb);
@@ -438,3 +441,19 @@ insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '창업 
 insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '관심 서비스 1개 뜯어보기', 15, 3, false, '["startup","design"]'::jsonb);
 insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '채용공고 3개 스크랩', 10, 2, false, '["career"]'::jsonb);
 insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '쇼츠 아이디어 3개 메모', 5, 2, false, '["content"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('body', '버피 30개', 8, 2, false, '["fitness"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('body', '특급전사 기준 1종목 측정', 20, 5, true, '["fitness"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('mind', '감사한 일 3가지 적기', 5, 2, false, '["health","reading"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('mind', '명상 또는 호흡 정리 5분', 5, 2, false, '["health"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('money', '내일준비적금 납입액 점검', 5, 2, false, '["finance"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('money', '전역 후 첫 달 예산 짜보기', 20, 4, true, '["finance"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('money', 'ETF 1개 구성 종목 살펴보기', 10, 2, false, '["finance"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('money', '청년 지원 정책 1개 정리', 10, 3, false, '["finance","career"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('people', '후임 고민 10분 들어주기', 10, 3, false, '[]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('people', '가족/친구에게 안부 연락', 5, 2, false, '[]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('people', '오늘 배운 것 1가지 설명해보기', 10, 3, false, '["university","reading"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('people', '관심 직무 현직자 글 1개 읽기', 10, 2, false, '["career"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '평소 안 하던 일 1가지 하기', 10, 3, true, '[]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '부대 프로그램/대회 1개 알아보기', 10, 3, false, '["career","startup"]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '어려운 부탁 하나 해보기', 5, 4, true, '[]'::jsonb);
+insert into quest_pool (stat, txt, min, xp, hard, tags) values ('edge', '내 강점 3가지 적어보기', 10, 2, false, '["career"]'::jsonb);

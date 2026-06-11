@@ -1069,6 +1069,23 @@ export const rawQuestPool = [
   { stat: 'edge',   txt: '관심 서비스 1개 뜯어보기',   min: 15, xp: 3, hard: false, tags: ['startup', 'design'] },
   { stat: 'edge',   txt: '채용공고 3개 스크랩',        min: 10, xp: 2, hard: false, tags: ['career'] },
   { stat: 'edge',   txt: '쇼츠 아이디어 3개 메모',     min: 5,  xp: 2, hard: false, tags: ['content'] },
+  // 보강 16 — 7일 로테이션(quest_history)이 돌 만큼 폭을 확보. money/people/edge 위주.
+  { stat: 'body',   txt: '버피 30개',                  min: 8,  xp: 2, hard: false, tags: ['fitness'] },
+  { stat: 'body',   txt: '특급전사 기준 1종목 측정',   min: 20, xp: 5, hard: true,  tags: ['fitness'] },
+  { stat: 'mind',   txt: '감사한 일 3가지 적기',       min: 5,  xp: 2, hard: false, tags: ['health', 'reading'] },
+  { stat: 'mind',   txt: '명상 또는 호흡 정리 5분',    min: 5,  xp: 2, hard: false, tags: ['health'] },
+  { stat: 'money',  txt: '내일준비적금 납입액 점검',   min: 5,  xp: 2, hard: false, tags: ['finance'] },
+  { stat: 'money',  txt: '전역 후 첫 달 예산 짜보기',  min: 20, xp: 4, hard: true,  tags: ['finance'] },
+  { stat: 'money',  txt: 'ETF 1개 구성 종목 살펴보기', min: 10, xp: 2, hard: false, tags: ['finance'] },
+  { stat: 'money',  txt: '청년 지원 정책 1개 정리',    min: 10, xp: 3, hard: false, tags: ['finance', 'career'] },
+  { stat: 'people', txt: '후임 고민 10분 들어주기',    min: 10, xp: 3, hard: false, tags: [] },
+  { stat: 'people', txt: '가족/친구에게 안부 연락',    min: 5,  xp: 2, hard: false, tags: [] },
+  { stat: 'people', txt: '오늘 배운 것 1가지 설명해보기', min: 10, xp: 3, hard: false, tags: ['university', 'reading'] },
+  { stat: 'people', txt: '관심 직무 현직자 글 1개 읽기', min: 10, xp: 2, hard: false, tags: ['career'] },
+  { stat: 'edge',   txt: '평소 안 하던 일 1가지 하기', min: 10, xp: 3, hard: true,  tags: [] },
+  { stat: 'edge',   txt: '부대 프로그램/대회 1개 알아보기', min: 10, xp: 3, hard: false, tags: ['career', 'startup'] },
+  { stat: 'edge',   txt: '어려운 부탁 하나 해보기',    min: 5,  xp: 4, hard: true,  tags: [] },
+  { stat: 'edge',   txt: '내 강점 3가지 적어보기',     min: 10, xp: 2, hard: false, tags: ['career'] },
 ];
 
 // ── Interest taxonomy (온보딩 관심사 12종) ────────────────────────────

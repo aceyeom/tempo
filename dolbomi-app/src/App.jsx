@@ -3,9 +3,8 @@ import { Icon } from './icons';
 import { ScreenHead } from './components/ui';
 import { useStore } from './store';
 import { HomeScreen } from './screens/HomeScreen';
+import { QuestScreen } from './screens/QuestScreen';
 import { RadarScreen } from './screens/RadarScreen';
-import { VacationScreen } from './screens/VacationScreen';
-import { BenefitsScreen } from './screens/BenefitsScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { OppDetail } from './screens/OppDetail';
 import { OppPlan } from './screens/OppPlan';
@@ -17,7 +16,9 @@ import { SettingsScreen } from './screens/SettingsScreen';
 import { CheckInSheet, QuestComplete, Wrapped } from './components/Overlays';
 import { AvatarViewer } from './components/creature/AvatarViewer';
 import { CREATURE_PATHS } from './components/creature/CreatureHero';
-import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle, TweakRadio, TweakSelect } from './components/TweaksPanel';
+import { evolutionOf, COMPANION_STAGE } from './components/creature/GuardianCard';
+import { FirstRunGuide, guideSeen } from './components/Guide';
+import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle, TweakRadio } from './components/TweaksPanel';
 import { IOSDevice } from './components/IOSFrame';
 import './styles/tokens.css';
 
@@ -29,14 +30,15 @@ const PAL_MAP = { '골드': 'gold', '택티컬': 'green', '스틸': 'steel' };
 const PATH_KEYS = new Set(CREATURE_PATHS.map((p) => p.key));
 const ANIMAL_FOR_PATH = { haechi: 'ram', dragon: 'fox' };
 
+// 4 tabs with one job each: 홈 = the guardian dashboard, 퀘스트 = the daily
+// action, 기회 = browse (탐색·휴가·혜택 as segments), 프로필 = the Receipt + hub.
 const NAV = [
   { key: 'home', label: '홈', icon: 'home' },
+  { key: 'quests', label: '퀘스트', icon: 'moon' },
   { key: 'radar', label: '기회', icon: 'target' },
-  { key: 'vacation', label: '휴가', icon: 'palm' },
-  { key: 'benefits', label: '혜택', icon: 'shieldGift' },
   { key: 'profile', label: '프로필', icon: 'user' },
 ];
-const TAB_TITLES = { home: '', radar: '기회 레이더', vacation: '휴가 사다리', benefits: '혜택', profile: '프로필' };
+const TAB_TITLES = { home: '', quests: '오늘의 퀘스트', radar: '기회 레이더', profile: '프로필' };
 
 export default function App() {
   const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
@@ -66,8 +68,24 @@ export default function App() {
   const storeToggleSubquest = useStore((s) => s.toggleSubquest);
   const storeAddTonight = useStore((s) => s.addTonight);
   const storeCheckin = useStore((s) => s.checkin);
+  const toast = useStore((s) => s.toast);
+  const showToast = useStore((s) => s.showToast);
 
   useEffect(() => { bootstrap(); }, [bootstrap]);
+
+  // toast auto-dismiss: render straight from the store, expire by id
+  const [toastExpiredId, setToastExpiredId] = useState(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToastExpiredId(toast.id), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+  const toastShown = toast && toast.id !== toastExpiredId ? toast : null;
+
+  // one-time core-loop walkthrough, right after onboarding (derived, no effect)
+  const [guideDismissed, setGuideDismissed] = useState(false);
+  const onboarded = !!useStore((s) => s.soldier?.onboarded);
+  const guideOpen = loaded && onboarded && !needsAuth && !guideDismissed && !guideSeen();
 
   const pushedOpp = pushed && pushed.id ? oppById(pushed.id) : null;
   const getMs = (o) => o.milestones;
@@ -76,7 +94,15 @@ export default function App() {
   const theme = prefs.theme === 'light' ? 'light' : 'dark';
   const creaturePath = PATH_KEYS.has(prefs.path) ? prefs.path : 'haechi';
   const creatureAnimal = ANIMAL_FOR_PATH[creaturePath] || 'ram';
-  const pickPath = (key) => { if (PATH_KEYS.has(key)) setPref('path', key); };
+  // the unchosen guardian unlocks as a companion at 성체 (COMPANION_STAGE)
+  const pickPath = (key) => {
+    if (!PATH_KEYS.has(key) || key === creaturePath) return;
+    if (evolutionOf(allStats).stage < COMPANION_STAGE) {
+      showToast('동료 수호신은 성체 단계(140 XP)에 해금돼');
+      return;
+    }
+    setPref('path', key);
+  };
 
   const milestones = useMemo(() => {
     const cat = (catalog || []).reduce((n, o) =>
@@ -94,7 +120,7 @@ export default function App() {
   const openOpp = (o) => setPushed({ type: 'opp', id: o.id });
   const openPlan = (o) => setPushed({ type: 'oppPlan', id: o.id });
   const makeQuest = (oId) => { if (oppById(oId)) setPushed({ type: 'opp', id: oId }); };
-  const addToTonight = (oId) => { storeAddTonight(oId); setPushed(null); setTab('home'); };
+  const addToTonight = (oId) => { storeAddTonight(oId); setPushed(null); setTab('quests'); };
 
   const isDark = theme === 'dark';
   const palData = PAL_MAP[prefs.palette] || 'gold';
@@ -138,11 +164,10 @@ export default function App() {
   }
 
   let screen = null;
-  if (tab === 'home') screen = <HomeScreen soldier={soldier} stats={allStats} quests={quests} statMode={statMode} mood={mood} showAi={t.showAi} onToggleQuest={toggleQuest} onOpenCheckin={() => setSheet('checkin')} creaturePath={creaturePath} creatureAnimal={creatureAnimal} theme={theme} pulseSignal={pulse} milestones={milestones} onPickPath={pickPath} onOpenOpp={makeQuest} onOpenAvatar={() => setShowAvatar(true)} catalog={catalog} />;
-  else if (tab === 'radar') screen = <RadarScreen onOpenOpp={openOpp} onAddOpp={() => setPushed({ type: 'addOpp' })} soldier={soldier} />;
-  else if (tab === 'vacation') screen = <VacationScreen onOpenOpp={openOpp} />;
-  else if (tab === 'benefits') screen = <BenefitsScreen onMakeQuest={makeQuest} soldier={soldier} />;
-  else if (tab === 'profile') screen = <ProfileScreen soldier={soldier} stats={allStats} statMode={statMode} onOpen={(k) => setPushed({ type: k })} creaturePath={creaturePath} creatureAnimal={creatureAnimal} milestones={milestones} pulseSignal={pulse} onPickPath={pickPath} onOpenOpp={makeQuest} onOpenAvatar={() => setShowAvatar(true)} onOpenSettings={() => setPushed({ type: 'settings' })} />;
+  if (tab === 'home') screen = <HomeScreen soldier={soldier} stats={allStats} quests={quests} mood={mood} showAi={t.showAi} creaturePath={creaturePath} creatureAnimal={creatureAnimal} theme={theme} pulseSignal={pulse} milestones={milestones} onPickPath={pickPath} onOpenAvatar={() => setShowAvatar(true)} onGoQuests={() => goTab('quests')} catalog={catalog} />;
+  else if (tab === 'quests') screen = <QuestScreen soldier={soldier} stats={allStats} quests={quests} mood={mood} onToggleQuest={toggleQuest} onOpenCheckin={() => setSheet('checkin')} onOpenPlan={openPlan} onGoRadar={() => goTab('radar')} />;
+  else if (tab === 'radar') screen = <RadarScreen onOpenOpp={openOpp} onAddOpp={() => setPushed({ type: 'addOpp' })} onMakeQuest={makeQuest} soldier={soldier} />;
+  else if (tab === 'profile') screen = <ProfileScreen soldier={soldier} stats={allStats} statMode={statMode} onOpen={(k) => setPushed({ type: k })} onOpenOpp={makeQuest} onOpenAvatar={() => setShowAvatar(true)} onOpenSettings={() => setPushed({ type: 'settings' })} onGoRadar={() => goTab('radar')} />;
 
   let pushContent = null, pushTitle = '';
   if (pushed) {
@@ -214,6 +239,18 @@ export default function App() {
           );
         })}
       </nav>
+
+      {toastShown && (
+        <div key={toastShown.id} style={{ position: 'absolute', left: 20, right: 20, bottom: 104, zIndex: 70, display: 'flex', justifyContent: 'center',
+          pointerEvents: 'none', animation: 'tmRise .35s cubic-bezier(.2,.8,.2,1) both' }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', padding: '11px 17px', borderRadius: 999,
+            background: 'var(--surface)', boxShadow: 'inset 0 0 0 1px var(--line), 0 14px 34px -14px rgba(0,0,0,.55)' }}>
+            {toastShown.msg}
+          </span>
+        </div>
+      )}
+
+      {guideOpen && <FirstRunGuide onDone={() => { setGuideDismissed(true); goTab('quests'); }} />}
 
       {sheet === 'checkin' && <CheckInSheet onClose={() => setSheet(null)} onDone={(m) => { storeCheckin(m.key, m.energy); setSheet(null); }} />}
       {celebrate && <QuestComplete quest={celebrate} guardianName={(CREATURE_PATHS || []).find((p) => p.key === creaturePath)?.ko || '수호신'} onClose={() => { setCelebrate(null); setPulse((p) => p + 1); }} />}

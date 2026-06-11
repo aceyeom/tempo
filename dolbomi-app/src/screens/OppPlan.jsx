@@ -152,7 +152,7 @@ export function OppPlan({ o, ms, onToggle, onAddTonight }) {
 
       <OppProgressBar o={o} ms={ms} />
 
-      <SectionHeader caption="AI가 짠 마감까지의 경로 · 단계를 탭하면 펼쳐져">퀘스트 경로</SectionHeader>
+      <SectionHeader caption="마감까지의 단계별 경로 · 완료하면 능력치 XP, 인증하면 +50% 보너스">퀘스트 경로</SectionHeader>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 20 }}>
         {ms.map((m, mi) => {
           const dn = m.subquests.filter((s) => s.done).length;

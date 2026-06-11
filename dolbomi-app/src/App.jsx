@@ -18,7 +18,7 @@ import { AvatarViewer } from './components/creature/AvatarViewer';
 import { CREATURE_PATHS } from './components/creature/CreatureHero';
 import { evolutionOf, COMPANION_STAGE } from './components/creature/GuardianCard';
 import { useTweaks, TweaksPanel, TweakSection, TweakSlider, TweakToggle, TweakRadio } from './components/TweaksPanel';
-import { IOSDevice } from './components/IOSFrame';
+
 import './styles/tokens.css';
 
 // Secondary dev knobs (the production theme/palette/path now live in store prefs
@@ -122,25 +122,21 @@ export default function App() {
   // ── gates: loading → auth → app ──────────────────────────────────────
   if (!authReady || !loaded) {
     return (
-      <IOSDevice dark={isDark}>
-        <div className="dolbomi" data-pal={palData} data-theme={theme}
-          style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--sub)' }}>
-            {Icon('sparkle', { size: 28, color: 'var(--accent)', stroke: 1.8 })}
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.04em' }}>DOLBOMI 불러오는 중…</span>
-          </div>
+      <div className="dolbomi" data-pal={palData} data-theme={theme}
+        style={{ height: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: 'var(--sub)' }}>
+          {Icon('sparkle', { size: 28, color: 'var(--accent)', stroke: 1.8 })}
+          <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: '.04em' }}>DOLBOMI 불러오는 중…</span>
         </div>
-      </IOSDevice>
+      </div>
     );
   }
 
   if (needsAuth) {
     return (
-      <IOSDevice dark={isDark}>
-        <div className="dolbomi" data-pal={palData} data-theme={theme} style={{ height: '100%', position: 'relative', background: 'var(--bg)' }}>
-          <AuthScreen />
-        </div>
-      </IOSDevice>
+      <div className="dolbomi" data-pal={palData} data-theme={theme} style={{ height: '100dvh', position: 'relative', background: 'var(--bg)' }}>
+        <AuthScreen />
+      </div>
     );
   }
 
@@ -149,11 +145,9 @@ export default function App() {
   // signed in but profile not set up yet → guided onboarding wizard
   if (online && !soldier.onboarded) {
     return (
-      <IOSDevice dark={isDark}>
-        <div className="dolbomi" data-pal={palData} data-theme={theme} style={{ height: '100%', position: 'relative', background: 'var(--bg)' }}>
-          <OnboardingScreen soldier={soldier} onComplete={completeOnboarding} />
-        </div>
-      </IOSDevice>
+      <div className="dolbomi" data-pal={palData} data-theme={theme} style={{ height: '100dvh', position: 'relative', background: 'var(--bg)' }}>
+        <OnboardingScreen soldier={soldier} onComplete={completeOnboarding} />
+      </div>
     );
   }
 
@@ -201,14 +195,13 @@ export default function App() {
   const tabTitle = TAB_TITLES[tab];
 
   return (
-    <IOSDevice dark={isDark}>
     <div className="dolbomi" data-pal={palData} data-theme={theme}
-      style={{ '--game': (t.game ?? 20) / 100, '--istroke': t.istroke ?? 1.75, height: '100%', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      style={{ '--game': (t.game ?? 20) / 100, '--istroke': t.istroke ?? 1.75, height: '100dvh', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 240, pointerEvents: 'none', zIndex: 0,
         background: 'radial-gradient(90% 60% at 50% -12%, rgba(var(--accent-rgb), calc(.10 * (var(--game) + .4))), transparent 66%)' }} />
 
       <main style={{ position: 'relative', flex: 1, overflow: 'hidden', zIndex: 1 }}>
-        <div key={tab} style={{ position: 'absolute', inset: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: '56px 20px 0' }}>
+        <div key={tab} style={{ position: 'absolute', inset: 0, overflowY: 'auto', WebkitOverflowScrolling: 'touch', padding: 'calc(env(safe-area-inset-top, 0px) + 56px) 20px 0' }}>
           {tabTitle && <ScreenHead title={tabTitle} />}
           {screen}
           <div style={{ height: 104 }} />
@@ -223,7 +216,7 @@ export default function App() {
         )}
 
         {pushed && (
-          <div key={pushed.type + (pushed.id || '')} style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: '56px 20px 0', background: 'var(--bg)', zIndex: 5, animation: 'tmSlideIn .3s cubic-bezier(.2,.8,.2,1)' }}>
+            <div key={pushed.type + (pushed.id || '')} style={{ position: 'absolute', inset: 0, overflowY: 'auto', padding: 'calc(env(safe-area-inset-top, 0px) + 56px) 20px 0', background: 'var(--bg)', zIndex: 5, animation: 'tmSlideIn .3s cubic-bezier(.2,.8,.2,1)' }}>
             <ScreenHead title={pushTitle} onBack={() => setPushed(null)} />
             {pushContent}
             <div style={{ height: 104 }} />
@@ -231,7 +224,7 @@ export default function App() {
         )}
       </main>
 
-      <nav style={{ position: 'relative', zIndex: 20, display: 'flex', justifyContent: 'space-between', padding: '10px 18px 26px',
+      <nav style={{ position: 'relative', zIndex: 20, display: 'flex', justifyContent: 'space-between', padding: '10px 18px calc(env(safe-area-inset-bottom, 0px) + 10px)',
         background: 'linear-gradient(0deg, var(--bg) 62%, transparent)', boxShadow: 'inset 0 1px 0 var(--line)' }}>
         {NAV.map((n) => {
           const on = tab === n.key && !pushed;
@@ -270,6 +263,5 @@ export default function App() {
         <TweakToggle label="오늘의 한 줄" value={t.showAi} onChange={(v) => setTweak('showAi', v)} />
       </TweaksPanel>
     </div>
-    </IOSDevice>
   );
 }

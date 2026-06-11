@@ -2,9 +2,15 @@ import { Icon } from '../icons';
 import { Card, Btn, SectionHeader } from '../components/ui';
 import { useStore } from '../store';
 import { CREATURE_PATHS } from '../components/creature/CreatureHero';
+import { evolutionOf, BANDS, COMPANION_STAGE } from '../components/creature/GuardianCard';
 
-const THEMES = [{ v: 'dark', ko: '다크' }, { v: 'light', ko: '라이트' }];
-const PALETTES = [{ v: '골드', sw: '#E7A33C' }, { v: '택티컬', sw: '#5A8F5A' }, { v: '스틸', sw: '#6E8AA6' }];
+const THEMES = [{ v: 'light', ko: '라이트' }, { v: 'dark', ko: '다크' }];
+// 골드 is the default; the other palettes are evolution-roadmap unlocks
+const PALETTES = [
+  { v: '골드', sw: '#E7A33C', stage: 1 },
+  { v: '택티컬', sw: '#5A8F5A', stage: 2 },
+  { v: '스틸', sw: '#6E8AA6', stage: 3 },
+];
 
 function Row({ children }) {
   return <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>{children}</div>;
@@ -24,7 +30,11 @@ export function SettingsScreen({ onOpenAdmin }) {
   const signOut = useStore((s) => s.signOut);
   const online = useStore((s) => s.online);
   const soldier = useStore((s) => s.soldier);
+  const stats = useStore((s) => s.stats);
+  const showToast = useStore((s) => s.showToast);
   const isAdmin = soldier?.role === 'admin';
+  const stage = evolutionOf(stats).stage;
+  const companionUnlocked = stage >= COMPANION_STAGE;
 
   return (
     <div className="tm-rise">
@@ -38,31 +48,44 @@ export function SettingsScreen({ onOpenAdmin }) {
             </Pill>
           ))}
         </Row>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sub)', margin: '16px 0 8px' }}>색</div>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--sub)', margin: '16px 0 8px' }}>색 · 진화로 해금</div>
         <Row>
-          {PALETTES.map((p) => (
-            <Pill key={p.v} on={prefs.palette === p.v} onClick={() => setPref('palette', p.v)}>
-              <span style={{ width: 13, height: 13, borderRadius: 999, background: p.sw, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.2)' }} />{p.v}
-            </Pill>
-          ))}
+          {PALETTES.map((p) => {
+            const locked = stage < p.stage;
+            const band = BANDS[p.stage - 1];
+            return (
+              <Pill key={p.v} on={prefs.palette === p.v}
+                onClick={() => locked
+                  ? showToast(`「${p.v}」 팔레트는 ${band.label} 단계(${band.min} XP)에 해금돼`)
+                  : setPref('palette', p.v)}>
+                <span style={{ width: 13, height: 13, borderRadius: 999, background: p.sw, boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.2)', opacity: locked ? 0.5 : 1 }} />
+                {p.v}{locked && Icon('shield', { size: 12, color: 'var(--faint)', stroke: 2 })}
+              </Pill>
+            );
+          })}
         </Row>
       </Card>
 
-      <SectionHeader caption="홈·프로필에 나타나는 너의 수호신">수호신</SectionHeader>
+      <SectionHeader caption={companionUnlocked ? '동료 수호신과 언제든 교대할 수 있어' : `다른 수호신은 성체 단계(${BANDS[COMPANION_STAGE - 1].min} XP)에 동료로 해금`}>수호신</SectionHeader>
       <Card pad={16} style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {CREATURE_PATHS.map((p) => {
             const on = prefs.path === p.key;
+            const locked = !on && !companionUnlocked;
             return (
-              <button key={p.key} onClick={() => setPref('path', p.key)} className="tm-tap" style={{ width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 12,
+              <button key={p.key} className="tm-tap"
+                onClick={() => locked
+                  ? showToast(`동료 수호신은 성체 단계(${BANDS[COMPANION_STAGE - 1].min} XP)에 해금돼`)
+                  : setPref('path', p.key)}
+                style={{ width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderRadius: 12, opacity: locked ? 0.6 : 1,
                 background: on ? 'rgba(var(--accent-rgb),.14)' : 'var(--surface2)', boxShadow: on ? 'inset 0 0 0 1.5px var(--accent)' : 'inset 0 0 0 1px var(--line)' }}>
                 <span style={{ width: 9, height: 9, borderRadius: 999, background: on ? 'var(--accent)' : 'var(--faint)', flexShrink: 0 }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--ink)' }}>{p.ko}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'var(--faint)' }}>{p.desc}</span>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: on ? 'var(--accent)' : 'var(--ink)' }}>{p.ko}{on ? ' · 나의 수호신' : ''}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--faint)' }}>{locked ? '성체 단계에 동료로 해금' : p.desc}</span>
                 </span>
-                {on && Icon('check', { size: 16, color: 'var(--accent)', stroke: 2.4 })}
+                {on ? Icon('check', { size: 16, color: 'var(--accent)', stroke: 2.4 }) : locked && Icon('shield', { size: 15, color: 'var(--faint)', stroke: 2 })}
               </button>
             );
           })}

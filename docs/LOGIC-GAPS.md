@@ -1,409 +1,219 @@
-# DOLBOMI — Logic Gaps & Things to Fix
+# DOLBOMI — Design Review & Decision Record
 
-The catalogue of **broken, non-functional, dead, or misleading logic** in
-`dolbomi-app/`. This was the implementation backlog implied by the brief
-("various components… just a visual unfunctional wrapper… all the logical
-loopholes").
+This document has two layers, matching the project's two passes:
 
-> **Most of this has now been fixed** as part of the Vercel + Supabase
-> migration. See the **Resolution status** below for what's done, partial, or
-> deliberately deferred. The original catalogue is kept underneath as the record
-> of *why* each change was made. Note that the file references in the catalogue
-> predate the migration (the Express `server/` was removed; write logic now lives
-> in `supabase/migrations/0002_functions.sql`, read assembly in
-> `dolbomi-app/src/api/client.js`).
+1. **Part I — Design review (current):** the product-design audit done after the
+   technical logic gaps were closed. Each issue: **Problem → Decision → Status**.
+   Decisions were made interactively with the product owner (2026-06-11).
+2. **Part II — Logic-gap history (archive):** the original catalogue of broken
+   logic from the first pass, kept as the record of *why* the Supabase
+   migration changed what it changed.
 
-**Severity:** 🔴 core loop broken / claim is false · 🟠 feature non-functional ·
-🟡 misleading / partial / stale · ⚪ cosmetic / cleanup.
+**Status legend:** ✅ shipped (this pass) · ◐ partial · 📋 specified, not built ·
+⏸ deliberately deferred.
 
 ---
 
-## Resolution status (post-migration)
+## Part I — Design review
 
-✅ fixed · ◐ partial · ⏸ deferred (scope/cost)
+The technical loop works (quests grant XP, the creature evolves, streaks guard
+by day). This pass asked the next question: **is the product clear, honest, and
+worth opening at 21:00 on an exhausted day?** Issues are grouped by theme.
 
-| Group | ✅ Fixed | ◐ Partial | ⏸ Deferred |
-| --- | --- | --- | --- |
-| **A. XP/Evolution** | A1, A2, A3, A4, A6, A7 | A5 (cur grows live, not a full history recompute) | — |
-| **B. Check-in/AI** | B1, B2, B3, B4 | — | B5 (no LLM; "AI" copy softened, not model-backed) |
-| **C. Fake AI** | C1, C3 | C2 ("재계획" relabelled to an honest view hint) | — |
-| **D. Quest creation** | D1 | D2 (add + complete; no edit/reorder/delete UI) | — |
-| **E. Verified bonus** | E1 (+50% XP) | — | — |
-| **F. Settings/Theme/Path** | F1, F2, F3, F4, F5, F6 | F8 (set at onboarding; no later edit UI) | F7 (4 paths → 2 models, cosmetic) |
-| **G. Accounts/Auth** | G1, G2, G3 (Supabase Auth) | — | — |
-| **H. Vacation** | H1, H2 | — | H3 (secured is real; days still informational) |
-| **I. Catalog/filters** | I1, I2, I3 | — | — |
-| **J. Titles/Recap/Share** | J1, J3, J4 | J2 (headline numbers derived; some recap copy static) | — |
-| **K. Persistence/sync** | K1, K2 (mutations refetch) | K3 (offline edits still memory-only) | — |
-| **L. Misc/data** | L1, L2 | — | L3 (status still client-derived; acceptable) |
+### D1. Progression & XP
 
-**How the headline fixes were made**
-- **Core loop (A):** `app_toggle_tonight` / `app_toggle_subquest` write
-  `stats.cur` (capped at 100) from reference XP, so evolution, gilding, the
-  profile radar, and the celebration all *move*.
-- **Adaptive day (B):** `app_checkin` enforces one streak bump per Asia/Seoul day
-  and regenerates 오늘 밤의 3 from `quest_pool` sized to the reported energy.
-- **Accounts (G):** Supabase Auth (email/password) + per-user RLS; sign-up
-  onboarding writes name/rank/branch/guardian path; `app_ensure_profile`
-  provisions a new user's rows.
-- **Settings/onboarding (F):** real `SettingsScreen` + `AuthScreen`; theme /
-  palette / path persist to the profile and `localStorage`.
-- **Honest copy / real behaviour (C, E, F6, J4):** the home line is derived, the
-  branch filter filters, verified completion pays a bonus, share uses the Web
-  Share API.
-- **Live data (H, I, J, K, L):** D-day decrements from real deadlines, D-90 opps
-  are gated, titles auto-award, recap numbers derive from activity, vacation
-  `secured` is real, `MAXD` is single-sourced, and the reference catalog is
-  generated from `src/data` so it can't drift.
+**D1.1 — Stats didn't start at zero. ✅**
+*Problem:* `stat_defs.base` gave every new account 94 unexplained XP (body 20,
+craft 22…). Bars looked pre-filled, the first evolution was already 60% done,
+and the core promise — "every pixel is something you did" — was false from
+minute one.
+*Decision:* true-zero start. All six stats begin at 0; the radar starts empty.
+*Shipped:* `base = 0` (`data/index.js`, migration `0004`, regenerated
+`seed.sql`). Existing accounts keep earned XP.
 
----
+**D1.2 — Evolution bands assumed seeded stats. ✅**
+*Problem:* with a zero start, the old bands (150/270/390/500) put the first
+evolution weeks away — dead early game.
+*Decision:* rebalance so the first evolution lands in week 1 (~10 XP/day from
+오늘 밤의 3 alone), with later bands leaning on opportunity subquests (15–90 XP
+each).
+*Shipped:* bands now **각성기 0 → 성장기 40 → 성체 140 → 정예 300 → 수호신 480**
+(`GuardianCard.jsx BANDS`).
 
-Each item below: **Claim** (what the UI implied) → **Reality** (what the code did
-pre-migration) → `file:line` → **Fix direction**.
+**D1.3 — Targets (`tgt`) were fixed seed constants the user never chose. ✅**
+*Problem:* the Gap ("now me" vs "discharge me") is the spec's single most
+important answer to falling-behind anxiety, but the dashed target line was the
+same arbitrary numbers for everyone.
+*Decision:* **goal templates at onboarding** — 취업 준비형 / 체력 단련형 /
+자산 형성형 / 창업 도전형 set the six discharge-day targets; individually
+adjustable later.
+*Shipped:* onboarding step 5 (`OnboardingScreen`), `GOAL_TEMPLATES`
+(`data/index.js`), `app_set_targets` RPC (clamped server-side), profile
+**목표 조정** slider sheet (`ProfileScreen TargetEditor`), `profiles.goal`.
 
-Quick index:
-[A. XP/Evolution](#a-xp--leveling--evolution-the-core-broken-loop) ·
-[B. Check-in/AI](#b-check-in-mood-energy--ai-customization) ·
-[C. Fake AI](#c-canned-ai-surfaces) ·
-[D. Quest creation](#d-adding--creating-quests) ·
-[E. Verification](#e-verified--bonus) ·
-[F. Settings/Theme/Avatar/Identity](#f-settings-theme-avatar-path-조직-병과) ·
-[G. Accounts/Auth](#g-accounts--auth) ·
-[H. Vacation](#h-vacation-ladder) ·
-[I. Catalog/filters](#i-catalog--filters) ·
-[J. Titles/Recap/Activity/Sharing](#j-titles-recap-activity-sharing) ·
-[K. Persistence/sync](#k-persistence--sync) ·
-[L. Misc/data](#l-misc--stale-data)
+**D1.4 — Progression had no roadmap pull. ✅**
+*Problem:* stages only changed a label; nothing to look forward to.
+*Decision:* **cosmetic/prestige unlocks only** — features are never gated.
+성장기 → 팔레트 「택티컬」 · 성체 → 동료 수호신 + 「스틸」 · 정예 → 칭호 「정예」 ·
+수호신 → 칭호 「수호신의 주인」 + 황금화 완성.
+*Shipped:* roadmap card on 프로필 (every stage + its rewards + current marker),
+"next unlock" card on 홈, palette locks in 설정, total-XP title requirements
+(`req: {kind:'total'}`, `app_award_titles` v2), starter title 「첫 걸음」 (10 XP)
+so the first session already awards something.
 
----
+### D2. Avatar / guardian
 
-## A. XP / Leveling / Evolution (the core broken loop)
+**D2.1 — Four path names, two models, free swapping. ✅**
+*Problem:* 봉황/백호 were visually identical to 해치/청룡; swapping was free and
+instant, all driven by one shared XP pool — the "choice" carried no identity,
+no investment, no honesty.
+*Decision:* **one guardian, evolution roadmap.** Onboarding offers the two
+*real* guardians (해치/청룡) as a meaningful choice; 봉황/백호 are cut. The
+unchosen guardian unlocks as a switchable **companion at 성체 (140 XP)** —
+shown locked with its condition until then. Per-stat visual change stays via
+the existing gilding shader (mind+money → golden head, body → bulk…).
+*Shipped:* path switching gated everywhere (GuardianCard picker, 설정,
+AvatarViewer companion tap → toast with unlock condition), companion model
+hidden until unlocked, onboarding copy states the permanence
+("신중하게 골라 — 전역까지 함께한다").
 
-### 🔴 A1 — Stats never increase
-**Claim:** completing quests grows your six stats.
-**Reality:** `stats.cur` is seeded once and **no mutation ever updates it**.
-`toggleTonight` and `toggleSubquest` only flip `done` and log activity.
-`server/repositories/mutations.js` (whole file) · `db/schema.sql:26` (`stats` table).
-**Fix:** on quest/subquest completion, `UPDATE stats SET cur = cur + xp` for the
-quest's stat (and decrement on un-toggle), then return refreshed stats. Decide XP→stat
-scaling and a cap vs `tgt`.
+**D2.2 — One creature per stat / collection model — rejected.** Splits
+emotional attachment six ways and multiplies 3D asset cost; the Receipt wants
+*one* identity that carries the 18 months.
 
-### 🔴 A2 — Guardian never evolves
-**Claim:** "다음 진화 …까지" — the creature evolves as you progress.
-**Reality:** `evolutionOf(stats)` = sum of `stats.cur`; since cur is frozen (A1),
-the stage/label/progress are constant forever.
-`components/creature/GuardianCard.jsx:14`.
-**Fix:** falls out of A1. Verify `BANDS` thresholds match realistic stat totals
-(seed total ≈ 304 → already "성체"; max with six 100s = 600 vs top band 500).
+### D3. Quests
 
-### 🔴 A3 — "+XP" celebration is cosmetic
-**Claim:** `QuestComplete` counts up "+N XP" and "{stat} 경험치 성장".
-**Reality:** the number is `quest.xp` animated locally; nothing is stored.
-`components/Overlays.jsx:73-83, 119-127`.
-**Fix:** tie to A1; show the real stat delta returned by the mutation.
+**D3.1 — Generic, repetitive pool. ✅ (foundation) / 📋 (LLM)**
+*Problem:* ~45 generic micro-quests, repeats within a week, tap-to-complete
+with no connection to the user's actual goals. The spec's own kill criterion:
+"if quests feel templated by day 5, the emotional frame can't save it."
+*Decision:* **curated tracks + LLM personalization, built in that order.**
+Curation now (the opportunity catalog's step-by-step milestone plans *are* the
+authored tracks); a bounded LLM layer later that only *selects and rephrases*
+from the curated pool — never invents content. No "AI" claims in copy until
+it's real.
+*Shipped now:*
+- **7-day no-repeat rotation:** `quest_history` table records every served
+  quest; `app_pick_pool` v2 orders fresh-first → interest-match → random
+  (migration `0004`). Pool widened to ~60 with breadth in money/people/edge.
+- **The LLM seam:** `app_pick_pool` is the single selection point, documented
+  in-place — a model-backed Edge Function replaces only that function.
+- **Tracks surfaced where the action is:** the 퀘스트 tab lists 진행 중인 도전
+  with the next step completable inline (D3.3).
+*Deferred:* the actual Claude-API Edge Function (needs key + cost/fallback
+handling); journal→quest pipeline.
 
-### 🟠 A4 — Tonight-quest XP is never aggregated
-**Reality:** `tonight[].xp` is displayed but never added to stats or any total.
-`data/index.js:33`, `screens/HomeScreen.jsx:84`.
+**D3.2 — Check-in and quests lived on an overloaded Home. ✅**
+*Problem:* guardian hero + check-in + quests + six stat accordions + AI line
+on one scroll; meanwhile 휴가/혜택 (low-frequency browse) each owned a nav slot.
+*Decision:* **4 tabs, one job each** — 홈 (emotional dashboard) · 퀘스트 (daily
+action) · 기회 (browse: 탐색/휴가/혜택 segments) · 프로필 (Receipt + hub).
+Check-in **gates** the quest list (it literally generates it): quests render
+blurred with a "체크인하고 받기" pill until today's check-in.
+*Shipped:* `QuestScreen` (check-in gate → 오늘 밤의 퀘스트 → 진행 중인 도전 →
+오늘의 기록), Home slimmed to identity/guardian/status-chip/next-unlock/
+one-liner, `RadarScreen` segments, nav rewired (`App.jsx`).
 
-### 🟡 A5 — Per-stat cur/tgt are static, not computed
-**Claim:** "능력치 · 경험치" implies these reflect your quest history.
-**Reality:** `StatBar`/`SkillDetail` show seed `cur/tgt`; the per-stat quest list is
-derived live but the numbers above it are not.
-`components/SkillDetail.jsx:38-40`, `components/ui.jsx` (`StatBar`).
+**D3.3 — Opportunity progress was buried two taps deep. ✅**
+*Shipped:* active tracks (started, unlocked, unfinished, by D-day) on the
+퀘스트 tab with the next subquest completable inline; row opens the full plan.
 
-### 🟡 A6 — Avatar gilding is implemented but frozen
-**Reality:** `creature.js applyStats()` genuinely gilds head/chest/hooves from
-mind/money/etc., and `AvatarViewer` shows "머리 금빛 = 0.5·mind+0.5·money". Because
-stats never change (A1), these meters never move in normal use.
-`3d/creature.js:760`, `components/creature/AvatarViewer.jsx:13-16, 67`.
-**Fix:** falls out of A1; otherwise the whole shader system is invisible.
+**D3.4 — Un-completing a quest silently reclaimed XP. ✅**
+*Shipped:* arm-then-confirm — first tap on a done quest arms a 3s
+"한 번 더 누르면 완료 취소 · +N XP 회수" state.
 
-### 🟡 A7 — `milestones` count is the only live creature input
-**Reality:** App computes a `milestones` number (completed milestones + done tonight,
-App.jsx:79) and passes it to `setMilestones`, which only changes particle/orbit
-counts — not stage, XP, or stats. It's easy to mistake this for "progression."
-`App.jsx:79-83`, `3d/creature.js:761`.
+**D3.5 — "오늘 밤의 3에 추가" gave no feedback. ✅** Toast on add; navigation
+now lands on the 퀘스트 tab (where the quest actually appeared).
 
----
+### D4. Onboarding & teaching
 
-## B. Check-in (mood, energy) → AI customization
+**D4.1 — Zero explanation of anything. ✅**
+*Problem:* the wizard collected data but never taught the loop. Verified
++50%, evolution, the Gap, even where quests live — all undiscoverable.
+*Decision:* **guided first-quest walkthrough** + first-visit tips.
+*Shipped:*
+- `FirstRunGuide` — one-time 4-card walkthrough right after onboarding
+  (zero start → nightly rhythm → opportunity radar → evolution), ends by
+  routing into the 퀘스트 tab to do the first quest for real.
+- `TipBanner` — dismissible one-time explainers on 퀘스트/기회/프로필.
+- Verified bonus surfaced in the plan header ("완료하면 능력치 XP, 인증하면
+  +50% 보너스") instead of the old "AI가 짠 경로" claim.
 
-### 🔴 B1 — Check-in does not change tonight's quests
-**Claim:** "오늘 밤 퀘스트가 기분에 맞춰졌어" / "오늘 밤의 3 받기" — quests tailored to mood/energy.
-**Reality:** `addCheckin` inserts a row, bumps streak, logs activity. Tonight is a
-fixed 3-row seed; never regenerated.
-`server/repositories/mutations.js:41`, `components/Overlays.jsx:20-61`,
-`screens/HomeScreen.jsx:34`.
-**Fix:** implement quest selection (e.g. the `pickTonight()` scoring from the design
-docs) keyed on energy/mood; regenerate and return tonight in the checkin response.
+**D4.2 — Streaks broke silently. ✅** `app_checkin` returns `streak_before`;
+the client toasts "연속 기록이 끊겼어 · N일 → 1일부터 다시" (or the new streak).
 
-### 🟡 B2 — Mood isn't persisted to the UI
-**Reality:** `mood` is local React state for the home-card label only; not in the
-snapshot, so it resets on reload.
-`App.jsx:51, 173`, `screens/HomeScreen.jsx:30-34`.
+### D5. Theme & visual
 
-### 🟠 B3 — Energy is captured, stored, and never used
-**Reality:** `energy` is POSTed and saved to `checkins.energy`, but no code reads it.
-`server/repositories/mutations.js:42`, `db/schema.sql:147`.
+**D5.1 — Default was dark. ✅** Default is now **light + gold** everywhere:
+`DEFAULT_PREFS` (store), `profiles.theme` column default (migration `0004`),
+설정 lists 라이트 first. Light-theme text alphas raised for contrast on the
+pale gold background (`tokens.css`).
 
-### 🟡 B4 — Streak has no once-per-day guard
-**Reality:** every check-in does `streak = streak + 1`. Five check-ins → +5. No date
-dedupe; also nothing decays a broken streak.
-`server/repositories/mutations.js:44-46`.
-**Fix:** guard on "already checked in today"; compute streak from `checkins` dates.
+**D5.2 — Status bar ate taps. ✅** The decorative iOS status bar intercepted
+all pointer events in the top ~62px (the settings gear was untappable).
+`pointerEvents:'none'` on the overlay (`IOSFrame.jsx`). Found by driving the
+built app in a browser.
 
-### 🔴 B5 — No AI companion / Sunday Letter / journal pipeline
-**Claim:** design docs describe a memory-bearing AI companion, weekly letters, and
-journal→LLM quest generation.
-**Reality:** there are **zero** LLM/AI calls anywhere in the codebase.
-(grep: no anthropic/openai/fetch-to-LLM anywhere.)
-**Fix:** out of scope for a quick fix; if "AI-powered" stays in the UX copy, it must
-be backed by a real model call or the copy should be softened.
+### D6. Profile
 
----
+**D6.1 — Profile duplicated Home and buried the useful parts. ✅**
+*Decision:* **the living Receipt + functional hub.**
+*Shipped order:* identity card (rank/unit/MOS, equipped title, D-day, served %,
+service dates) → **전역 리시트** (Gap radar vs goal targets, total XP, 목표 조정)
+→ **진화 로드맵** (all stages + rewards) → 칭호 → 기록 (recap + activity) →
+**바로가기** (avatar viewer, my submitted opportunities, share recap, settings,
+logout). The guardian hero lives on 홈 only.
 
-## C. Canned "AI" surfaces
+### D7. Copy honesty
 
-### 🟡 C1 — "오늘의 한 줄" is a hardcoded string
-**Reality:** one streak≥3 ternary around a fixed sentence that always references
-"정보처리 필기까지 D-12" regardless of data.
-`screens/HomeScreen.jsx:51-60`.
+- "퀘스트" button on benefits (which only opened the opp detail) → **경로 보기**. ✅
+- "AI가 짠 마감까지의 경로" → honest step-path copy + bonus explanation. ✅
+- Auth hero replaced with the product's emotional center: **"우리 억울하지
+  말자."** ✅
 
-### 🟠 C2 — "마감까지 다시 짜기 (AI 재계획)" does nothing
-**Reality:** sets local `replanned=true`, shows canned text, and only clamps the
-local "expected %"; the plan/subquests are unchanged and it resets on navigation.
-`screens/OppPlan.jsx:9-15, 58-72`.
+### Open items (specified, not in this pass)
 
-### 🟡 C3 — Radar "personalization" is hardcoded
-**Reality:** "너에게 맞는 기회 N개 · 육군 · 상병 프로필 기준" — N is just `catalog.length`;
-the rest is a fixed label. No filtering by the soldier's profile.
-`screens/RadarScreen.jsx:18-24`.
-
----
-
-## D. Adding / creating quests
-
-### 🟠 D1 — "추가 / 퀘스트" buttons don't add anything
-**Claim:** "오늘 밤의 3에 추가" (OppDetail, OppPlan) and Benefits "퀘스트" add a quest.
-**Reality:** they navigate Home (`setPushed(null); setTab('home')`) or open the opp
-detail (`makeQuest`). Tonight is never modified.
-`App.jsx:94, 106, 109`, `screens/OppPlan.jsx:173`, `screens/BenefitsScreen.jsx:97`.
-**Fix:** add a `POST /api/tonight` create endpoint + store action; map subquests/opps
-into tonight rows.
-
-### 🟠 D2 — No way to create/edit/reorder quests at all
-**Reality:** there is no endpoint or UI to add, remove, reorder, or generate
-tonight quests, opportunities, or benefits. Everything is read-only seed. The brief's
-"manual inputting of events or opportunities" is **entirely absent**.
-`server/routes/api.js` (no create routes).
-**Fix:** decide which entities are user-authorable and add CRUD.
+| Item | Why deferred | Where it slots in |
+| --- | --- | --- |
+| LLM quest selection + 오늘의 한 줄 generation | needs API key, per-checkin cost, fallback design | replace `app_pick_pool` via Edge Function (seam documented in `0004`) |
+| Journal → quest pipeline, Sunday Letter, AI companion | premium-tier moat; depends on the LLM layer | new surfaces |
+| New 3D models / per-stage model variants | asset cost; gilding + aura carry stages for now | `creature.js` |
+| Lockscreen HUD widget | platform work (PWA/native) | spec Part V F1 |
+| Squad / Anonymous Wall / Rival social layer | post-PMF per spec | spec Part V E |
+| Real leave-day accounting (vacation secured → soldier record) | needs a trustworthy verification story | `H3` below |
+| Quest-tab inline step completion can't mark "verified" | kept simple; full plan view handles verification | `QuestScreen TrackRow` |
 
 ---
 
-## E. Verified / bonus
+## Part II — Logic-gap history (archive, first pass)
 
-### 🟡 E1 — "인증 +보너스" gives no bonus
-**Claim:** verifying a subquest (vs honest-tap) grants a bonus.
-**Reality:** `verified` only changes a checkmark color (gold→green) and adds an
-"인증됨" tag. XP is fixed by `size`; nothing differs in scoring, and `verified` is
-stored but unused by any calculation.
-`screens/OppPlan.jsx:82-113`, `server/repositories/mutations.js:22-38`.
+The original catalogue of **broken, non-functional, dead, or misleading
+logic** found in the prototype, and how the Vercel + Supabase migration
+resolved it. File references predate the migration (the Express `server/` was
+removed; write logic now lives in `supabase/migrations/0002+`, read assembly
+in `src/api/client.js`).
 
----
+### Resolution status
 
-## F. Settings, theme, avatar path, 조직, 병과
+✅ fixed · ◐ partial · ⏸ deferred
 
-### 🔴 F1 — No user-facing settings screen
-**Reality:** nav is home/radar/vacation/benefits/profile only. All design controls
-live in the dev `TweaksPanel`.
-`App.jsx:35-41, 177-190`.
+| Group | Outcome |
+| --- | --- |
+| **A. XP/Evolution** — stats never increased, creature never evolved, "+XP" was cosmetic | ✅ `app_toggle_tonight` / `app_toggle_subquest` write `stats.cur` (capped 100) from reference XP; evolution, gilding, radar and celebrations all move. A5 partial (cur grows live; no full history recompute) |
+| **B. Check-in/AI** — check-in changed nothing, energy unused, streak unguarded | ✅ `app_checkin`: one bump per Seoul day, regenerates 오늘 밤의 3 sized to energy. B5 (real LLM) still deferred — see Part I D3.1 |
+| **C. Fake AI surfaces** — hardcoded "오늘의 한 줄", no-op 재계획, fake personalization | ✅ home line derived from data; 재계획 relabelled to an honest view; radar counts real matches |
+| **D. Quest creation** — "추가" buttons were navigation no-ops; no CRUD | ✅ `app_add_tonight` + full user-opportunity CRUD (private → submitted → published with admin review). Edit/reorder UI still minimal |
+| **E. Verified bonus** — verification changed only a checkmark color | ✅ verified completion pays +50% XP server-side |
+| **F. Settings/Theme/Path** — no settings screen, dev-panel-only theming, nothing persisted | ✅ real `SettingsScreen` + `AuthScreen` + onboarding; theme/palette/path persist to profile + localStorage. F7 (4 paths→2 models) resolved by design in Part I D2.1 |
+| **G. Accounts** — single hardcoded demo login | ✅ Supabase Auth + per-user RLS + `app_ensure_profile` provisioning |
+| **H. Vacation** — "확보" was a constant 4; days informational | ✅ secured derives from completed vacation opps; H3 (days → real leave record) still deferred |
+| **I. Catalog** — filter omitted categories, D-day frozen, D-90 not gated | ✅ filters derived from data, deadlines absolute (D-day advances), unlock gating enforced server-side |
+| **J. Titles/Recap/Share** — titles pre-owned, Wrapped hardcoded, share no-ops | ✅ titles auto-award from requirements, recap numbers derive from activity, share uses the Web Share API. Some recap copy still static |
+| **K. Persistence** — mutations didn't refresh derived state; offline memory-only | ✅ mutations refetch the snapshot. K3 (offline edits don't sync back) accepted for the prototype |
+| **L. Misc** — orphaned savings data, dual data sources, client-only status | ✅ `src/data` is the single source (seed.sql is generated from it). L3 (client-derived pace status) accepted |
 
-### 🔴 F2 — The Tweaks panel is unreachable in production
-**Reality:** it renders only on receiving a `__activate_edit_mode` `postMessage` from
-a **parent frame** (the design-canvas host); standalone there's no parent, so it
-never opens (`if (!open) return null;`).
-`components/TweaksPanel.jsx:160-169, 198`.
-**Fix:** build a real Settings screen for theme/palette/avatar; don't rely on the
-dev panel for production controls.
-
-### 🟠 F3 — Tweaks (and theme/palette) never persist
-**Reality:** `useTweaks` is React state seeded from `TWEAK_DEFAULTS` on every load
-and only `postMessage`s to the parent — no localStorage/server.
-`components/TweaksPanel.jsx:115-125`, `App.jsx:19-28`.
-
-### 🟠 F4 — Light/dark mode can't be toggled by users & doesn't persist
-**Reality:** consequence of F2+F3. The token system (`styles/tokens.css`) fully
-supports light/dark, but the only switch is the unreachable, non-persistent panel.
-
-### 🟡 F5 — No onboarding / first-run avatar selection; path choice not saved
-**Reality:** path defaults to 해치/ram. The in-card "길 바꾸기" picker works at runtime
-(GuardianCard.jsx:59) but isn't persisted and there's no "choose your guardian to get
-started" flow. The brief's "how does the user select the avatar to get started?" has
-no answer in the app.
-`App.jsx:19, 77, 97`, `components/creature/GuardianCard.jsx:59-89`.
-**Fix:** onboarding step that writes the chosen path to the soldier record; load it
-into state on boot.
-
-### 🟡 F6 — Benefits branch filter (육군/해군/공군/해병대) is a no-op
-**Claim:** filter benefits by branch / 병과.
-**Reality:** `setBranch` updates state but `grouped` never filters by `branch`; all
-benefits are tagged `전군`. Selecting 해군 changes nothing.
-`screens/BenefitsScreen.jsx:18-19, 32-37`.
-**Fix:** tag benefits/opps by branch and filter; or remove the control.
-
-### ⚪ F7 — Four paths, two models
-**Reality:** `ANIMAL_FOR_PATH` maps haechi/phoenix→ram and dragon/tiger→fox, so 봉황
-is visually identical to 해치 and 백호 to 청룡. Path descriptions differ; models don't.
-`App.jsx:33`, `components/creature/CreatureHero.jsx:4-14`.
-
-### 🟡 F8 — 조직/unit is hardcoded and unsettable
-**Reality:** `soldier.unit = '제3보병사단'`; no UI to choose or change it; nothing
-keys off it.
-`data/index.js:9`.
-
----
-
-## G. Accounts & auth
-
-### 🔴 G1 — No account creation
-**Reality:** only `POST /auth/login` exists; the sole account is the seeded
-`demo/dolbomi`. No register/signup route, no logout, no account UI.
-`server/routes/api.js:11-20`, `server/db/seed.js:18-30`.
-**Fix:** add a register endpoint that creates a soldier + seeds their per-soldier
-rows; add login/onboarding UI.
-
-### 🟡 G2 — Everyone is the same soldier
-**Reality:** the frontend auto-logs-in as demo on boot; multi-user is
-schema-supported but unreachable.
-`api/client.js:33-42`, `store.js:27-35`.
-
-### 🟡 G3 — Default JWT secret
-**Reality:** `SECRET` falls back to `'dev-dolbomi-secret-change-in-prod'` if the env var
-is unset — fine for dev, must be set in prod.
-`server/auth.js:5`.
-
----
-
-## H. Vacation ladder
-
-### 🟡 H1 — "지금 확보" is effectively a constant 4
-**Reality:** `getVacation.secured` only counts **fully-completed** vacation opps and
-otherwise returns `4`. Since opps rarely hit 100%, it shows `4` permanently.
-`server/repositories/state.js:101-113`.
-
-### ⚪ H2 — `MAXD` duplicated
-**Reality:** the per-opp max-days table exists in both `state.js:100` and
-`screens/VacationScreen.jsx:6`; they can drift.
-**Fix:** make it part of the opportunity reward data (single source).
-
-### 🟠 H3 — Earned leave is just a displayed number
-**Reality:** even when secured increments, nothing adds leave days to the soldier or
-changes `dday`/`served`. Vacation is purely informational.
-`server/repositories/state.js:101`, `data/index.js:13-15`.
-
----
-
-## I. Catalog & filters
-
-### 🟡 I1 — Radar category filter omits a real category
-**Reality:** filter chips are `전체/대회/자격증/어학/금융/체력`, but the catalog also has
-`교육` (e.g. `naeil`), which therefore only appears under "전체". `정신` is defined in
-`cats` but unused.
-`screens/RadarScreen.jsx:11`, `data/index.js:49-58, 280`.
-
-### 🟡 I2 — D-day never advances
-**Reality:** all `dday` values (and `soldier.dday=291`, `served=0.55`) are static
-seed constants; no date math decrements them over real time. "마감 임박" is frozen.
-`data/index.js:4-16`, opportunity `dday` fields.
-
-### 🟠 I3 — D-90 / locked opportunities aren't gated
-**Reality:** `started:false` / "D-90 해금" opps (cheongnyeon, naeil, defai) are shown
-as normal cards and their subquests can be opened and toggled freely; the unlock
-gating from the design docs is not enforced.
-`data/index.js:259-320`, `screens/RadarScreen.jsx`, `screens/OppPlan.jsx`.
-
----
-
-## J. Titles, recap, activity, sharing
-
-### 🟠 J1 — Titles are never awarded by logic
-**Reality:** ownership/equipped come from seed; no code grants a title on hitting a
-threshold (e.g. "철벽 · 전투력 60 돌파" is pre-owned), and the equipped title can't be
-changed in the UI.
-`data/index.js:361-368`, `server/repositories/state.js:74`.
-
-### 🟡 J2 — Monthly Wrapped is fully hardcoded
-**Reality:** `wrapped` (42 quests, +3 전투력, savings, weekly bars, gains) is static;
-not derived from activity/checkins.
-`data/index.js:371-380`, `components/Overlays.jsx:133`, `components/ActivityLog.jsx:55`.
-
-### 🟡 J3 — Activity rows have no real date
-**Reality:** new rows are inserted with `day:'오늘'` and `ord:-1`; over multiple days
-everything stays labeled "오늘". Offline, nothing logs.
-`server/repositories/mutations.js:13-15, 47-49`.
-
-### 🟠 J4 — Share / referral buttons are no-ops
-**Reality:** "카톡에 공유" and "친구에게 같이 하자고 보내기" are `onClick={() => {}}`. The
-two-tier referral from the design docs is absent.
-`components/Overlays.jsx:189`, `screens/OppPlan.jsx:175`.
-
----
-
-## K. Persistence & sync
-
-### 🟡 K1 — Subquest toggles don't refresh derived data
-**Reality:** `toggleSubquest` returns `{ catalog, opp }`; the store updates `catalog`
-but not `vacation` or `activity`, so the vacation ladder and timeline can lag until a
-full `getState`/`checkin`.
-`server/repositories/mutations.js:36-37`, `store.js:46-60`.
-
-### 🟡 K2 — Tonight toggle doesn't surface its own activity row
-**Reality:** server logs an activity row on completion but returns only `{ tonight }`;
-the client never refreshes `activity`, so a just-completed quest isn't in the log
-until reload.
-`server/repositories/mutations.js:7-17`, `store.js:40-44`.
-
-### 🟡 K3 — Offline edits are memory-only and partial
-**Reality:** mutations short-circuit (`if (!get().online) return`) after the
-optimistic edit; tonight/subquest flips live only in memory, and **check-in does
-nothing offline** (it returns before any local change).
-`store.js:43, 59, 63-65`.
-
----
-
-## L. Misc / stale data
-
-### ⚪ L1 — Discharge-savings data is orphaned
-**Reality:** `savingsNow/savingsProjected/deltaMonth` remain in the soldier seed and
-schema, but the home savings card was removed (per design chat 5); no screen tracks
-real savings.
-`data/index.js:13-15`, `db/schema.sql:20-22`.
-
-### ⚪ L2 — Dual data sources
-**Reality:** `src/data/index.js` is both the DB seed source **and** the offline
-fallback. Fine, but a divergence between seed-time data and a migrated DB would make
-offline mode silently inconsistent with online.
-`store.js:8-19`, `server/db/seed.js:5`.
-
-### ⚪ L3 — `OppProgressBar` status math is client-local
-**Reality:** "on/tight/risk" is recomputed in the client from `fill` vs static
-`expectedPct` and can differ from the server's stored `status`.
-`screens/OppPlan.jsx:9-22`.
-
----
-
-## Suggested fix ordering
-
-1. **Close the core loop (A1→A2→A3):** make quest/subquest completion write
-   `stats.cur`, return refreshed stats, and let evolution + gilding move. This single
-   change makes the creature, XP, profile radar, and celebrations *mean* something.
-2. **Make the daily loop adaptive (B1, B3, D1, D2):** regenerate tonight from
-   mood/energy and let users add quests from opps/benefits.
-3. **Ship real settings + onboarding (F1, F2, F5, G1):** a Settings screen + first-run
-   avatar/path/theme choice that persists, and account creation.
-4. **Honor the promises or soften the copy (C1, C2, E1, B5, F6, J4):** either
-   implement the "AI"/bonus/branch/share behaviors or change the labels.
-5. **Tidy derived state & data (H, I, J2, K, L):** dedupe `MAXD`, gate D-90 opps,
-   refresh vacation/activity after mutations, derive recap from real data, add real
-   dates.
+The full pre-migration item-by-item catalogue (A1–L3 with `file:line`
+references) lives in this file's git history
+(`git log --follow docs/LOGIC-GAPS.md`) and in
+[WORKFLOW-LOGIC.md](./WORKFLOW-LOGIC.md), which walks each loop
+as-designed vs as-implemented.

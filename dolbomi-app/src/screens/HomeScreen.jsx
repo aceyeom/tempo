@@ -1,7 +1,12 @@
-import { Icon, STAT_C } from '../icons';
-import { Card, Tag, SectionHeader, IconChip } from '../components/ui';
-import { GuardianHero } from '../components/creature/GuardianCard';
-import { StatRow } from '../components/SkillDetail';
+// 홈 — the emotional dashboard (design review: quests/stats moved out).
+// Who I am · my guardian · today's status (deep-links to 퀘스트) · what the
+// next evolution unlocks · one derived line. The daily ACTION lives in the
+// 퀘스트 tab; the stat detail lives in 프로필.
+import { Icon } from '../icons';
+import { Card, Tag } from '../components/ui';
+import { GuardianHero, evolutionOf, BANDS } from '../components/creature/GuardianCard';
+import { seoulToday } from '../data';
+import { useStore } from '../store';
 
 // "오늘의 한 줄" — derived from real data, not a hardcoded sentence (LOGIC-GAPS C1).
 function aiLine(soldier, quests, stats, catalog) {
@@ -21,8 +26,12 @@ function aiLine(soldier, quests, stats, catalog) {
   return <>"{head} {statPart}{tail}"</>;
 }
 
-export function HomeScreen({ soldier, stats, quests, onToggleQuest, onOpenCheckin, mood, statMode, showAi, creaturePath, creatureAnimal, pulseSignal, milestones, onPickPath, onOpenOpp, onOpenAvatar, catalog }) {
+export function HomeScreen({ soldier, stats, quests, mood, showAi, creaturePath, creatureAnimal, pulseSignal, milestones, onPickPath, onOpenAvatar, onGoQuests, catalog }) {
+  const online = useStore((s) => s.online);
   const done = quests.filter((q) => q.done).length;
+  const checkedIn = online ? soldier.lastCheckinDate === seoulToday() : !!mood;
+  const evo = evolutionOf(stats);
+  const nextBand = evo.maxed ? null : BANDS.find((b) => b.label === evo.nextLabel);
 
   return (
     <div className="tm-rise">
@@ -38,39 +47,62 @@ export function HomeScreen({ soldier, stats, quests, onToggleQuest, onOpenChecki
         <Tag tone="accent" icon="trophy">{soldier.title}</Tag>
       </div>
 
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 14 }}>
         <GuardianHero soldier={soldier} stats={stats} creaturePath={creaturePath} creatureAnimal={creatureAnimal}
           milestones={milestones} pulseSignal={pulseSignal} onPickPath={onPickPath} variant="home" onOpenAvatar={onOpenAvatar} />
       </div>
 
-      <Card onClick={onOpenCheckin} glow={!mood} pad={15} style={{ marginBottom: 18, display: 'flex', alignItems: 'center', gap: 13 }}>
-        <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'var(--surface2)', boxShadow: 'inset 0 0 0 1px var(--line)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {mood ? <span style={{ fontSize: 22 }}>{mood.emoji}</span> : Icon('moon', { size: 20, color: 'var(--accent)', stroke: 1.9 })}
+      {/* today's status — the single tap into the daily loop */}
+      <Card onClick={onGoQuests} glow={!checkedIn} pad={15} style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 13 }}>
+        <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, background: 'var(--surface2)', boxShadow: 'inset 0 0 0 1px var(--line)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {checkedIn && mood ? <span style={{ fontSize: 22 }}>{mood.emoji}</span> : Icon('moon', { size: 20, color: 'var(--accent)', stroke: 1.9 })}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 700 }}>{mood ? `오늘 기분: ${mood.label}` : '60초 체크인'}</div>
-          <div style={{ fontSize: 11.5, color: 'var(--sub)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{mood ? '오늘 밤 퀘스트가 기분에 맞춰졌어' : '오늘 하루 어땠어? 두 번 탭이면 끝'}</div>
+          <div style={{ fontSize: 14, fontWeight: 700 }}>
+            {checkedIn ? `오늘 퀘스트 ${done} / ${quests.length} 완료` : '오늘의 체크인이 기다려'}
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--sub)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {checkedIn
+              ? (done >= quests.length && quests.length > 0 ? '오늘 밤 전부 완료 — 수호신이 자란다' : '퀘스트 탭에서 이어서 하자')
+              : '60초 체크인 → 컨디션에 맞는 퀘스트 3개'}
+          </div>
         </div>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: 'var(--positive)', fontWeight: 700, flexShrink: 0 }}>
+          {Icon('flame', { size: 13, color: 'var(--positive)', stroke: 2 })}{soldier.streak}일
+        </span>
         {Icon('chevR', { size: 18, color: 'var(--faint)' })}
       </Card>
 
-      <SectionHeader right={`${done} / ${quests.length} 완료`}>오늘 밤의 3</SectionHeader>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, marginBottom: 22 }}>
-        {quests.map((q) => <QuestRow key={q.id} q={q} stats={stats} onToggle={() => onToggleQuest(q.id)} />)}
-      </div>
-
-      <SectionHeader right="수호신 성장" caption="탭하면 그 능력치의 완료·남은 퀘스트가 펼쳐져">능력치 · 경험치</SectionHeader>
-      <Card pad="4px 18px 8px" style={{ marginBottom: showAi ? 16 : 4 }}>
-        {stats.map((s, i) => (
-          <StatRow key={s.key} s={s} mode={statMode} divided={i !== 0} onOpenOpp={onOpenOpp} />
-        ))}
-      </Card>
+      {/* what the next evolution unlocks — the roadmap pull */}
+      {nextBand && (
+        <Card pad={13} style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 11 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 11, flexShrink: 0, background: 'rgba(var(--accent-rgb),.12)',
+            boxShadow: 'inset 0 0 0 1px rgba(var(--accent-rgb),.26)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {Icon('sparkle', { size: 17, color: 'var(--accent)', stroke: 2 })}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700 }}>
+              다음 진화 <span style={{ color: 'var(--accent)' }}>{evo.nextLabel}</span>까지 {Math.max(0, evo.nextMin - evo.total)} XP
+            </div>
+            {nextBand.rewards.length > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--sub)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                해금: {nextBand.rewards.join(' · ')}
+              </div>
+            )}
+          </div>
+          <span className="mono" style={{ fontSize: 11.5, fontWeight: 800, color: 'var(--accent)', flexShrink: 0 }}>{evo.pct}%</span>
+        </Card>
+      )}
 
       {showAi && (
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '0 4px 6px' }}>
-          <IconChip name="sparkle" tone="accent" size={26} r={8} stroke={1.7} />
+          <div style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, background: 'rgba(var(--accent-rgb),.12)',
+            boxShadow: 'inset 0 0 0 1px rgba(var(--accent-rgb),.22)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {Icon('sparkle', { size: 13, color: 'var(--accent)', stroke: 1.7 })}
+          </div>
           <div style={{ flex: 1 }}>
-            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'rgba(242,244,246,.85)', textWrap: 'pretty' }}>
+            <p style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--sub)', textWrap: 'pretty' }}>
               {aiLine(soldier, quests, stats, catalog)}
             </p>
             <div style={{ fontSize: 10.5, color: 'var(--faint)', marginTop: 3 }}>오늘의 한 줄</div>
@@ -78,28 +110,5 @@ export function HomeScreen({ soldier, stats, quests, onToggleQuest, onOpenChecki
         </div>
       )}
     </div>
-  );
-}
-
-function QuestRow({ q, onToggle, stats }) {
-  const c = STAT_C[q.stat];
-  const stat = stats.find((s) => s.key === q.stat);
-  return (
-    <Card onClick={onToggle} pad={14} style={{ display: 'flex', alignItems: 'center', gap: 13, opacity: q.done ? 0.62 : 1,
-      boxShadow: q.hard && !q.done ? 'inset 0 0 0 1px rgba(var(--accent-rgb),.35)' : 'inset 0 0 0 1px var(--line)' }}>
-      <div style={{ width: 26, height: 26, borderRadius: 999, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        background: q.done ? 'var(--accent)' : 'transparent', boxShadow: q.done ? 'none' : `inset 0 0 0 2px ${q.hard ? 'var(--accent)' : 'var(--faint)'}` }}>
-        {q.done && Icon('check', { size: 15, color: 'var(--on-accent)', stroke: 2.6 })}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, textDecoration: q.done ? 'line-through' : 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{q.txt}</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3 }}>
-          <span style={{ fontSize: 11, color: c, fontWeight: 600 }}>{stat?.mil}</span>
-          <span style={{ fontSize: 11, color: 'var(--faint)' }}>· {q.min}분</span>
-          {q.hard && <Tag tone="accent" style={{ fontSize: 9.5, padding: '0 6px' }}>담력</Tag>}
-        </div>
-      </div>
-      <span className="mono" style={{ fontSize: 13, fontWeight: 700, color: q.done ? 'var(--faint)' : c, flexShrink: 0 }}>+{q.xp}</span>
-    </Card>
   );
 }

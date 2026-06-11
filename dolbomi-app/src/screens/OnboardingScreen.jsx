@@ -1,12 +1,13 @@
 // Onboarding wizard — runs once after signup (and again for accounts that are
 // missing profile fields). One decision per step, progress dots on top:
-//   1) 이름·군별  2) 계급·병과·부대  3) 복무 기간  4) 관심사  5) 수호신
+//   1) 이름·군별  2) 계급·병과·부대  3) 복무 기간  4) 관심사  5) 전역 목표  6) 수호신
 // What it collects drives everything personal: D-day math, base-local benefit
-// filters, and the interest tags that customize tonight's quests + the radar.
+// filters, the interest tags that customize tonight's quests + the radar, and
+// the goal-template targets that draw the Gap on the profile Receipt.
 import { useMemo, useState } from 'react';
 import { Icon } from '../icons';
 import { Btn } from '../components/ui';
-import { RANKS, BRANCH_INFO, BRANCHES, INTERESTS } from '../data';
+import { RANKS, BRANCH_INFO, BRANCHES, INTERESTS, GOAL_TEMPLATES } from '../data';
 import { CREATURE_PATHS } from '../components/creature/CreatureHero';
 
 const inputStyle = {
@@ -46,7 +47,7 @@ const addMonths = (iso, n) => {
   return d.toISOString().slice(0, 10);
 };
 
-const STEPS = ['기본', '소속', '복무', '관심사', '수호신'];
+const STEPS = ['기본', '소속', '복무', '관심사', '목표', '수호신'];
 
 export function OnboardingScreen({ soldier, onComplete }) {
   const [step, setStep] = useState(0);
@@ -62,6 +63,7 @@ export function OnboardingScreen({ soldier, onComplete }) {
   const [discharge, setDischarge] = useState(soldier?.dischargeDate || '');
   const [dischargeTouched, setDischargeTouched] = useState(!!soldier?.dischargeDate);
   const [interests, setInterests] = useState(soldier?.interests || []);
+  const [goal, setGoal] = useState(soldier?.goal || null);
   const [path, setPath] = useState(soldier?.path === 'dragon' ? 'dragon' : 'haechi');
 
   const info = BRANCH_INFO[branch] || BRANCH_INFO['육군'];
@@ -92,6 +94,7 @@ export function OnboardingScreen({ soldier, onComplete }) {
     rank && mos && unit,
     enlist && discharge && discharge > enlist,
     interests.length >= 1,
+    !!goal,
     path === 'haechi' || path === 'dragon',
   ][step];
 
@@ -100,9 +103,11 @@ export function OnboardingScreen({ soldier, onComplete }) {
     if (step < STEPS.length - 1) { setStep(step + 1); return; }
     setBusy(true);
     const rankEn = (RANKS.find((r) => r.ko === rank) || {}).en || 'PVT';
+    const tpl = GOAL_TEMPLATES.find((g) => g.key === goal);
     await onComplete({
       name: name.trim(), branch, rank, rankEn, mos, unit,
       enlistDate: enlist, dischargeDate: discharge, interests, path,
+      goal, targets: tpl ? tpl.targets : undefined,
     });
     setBusy(false);
   };
@@ -234,9 +239,40 @@ export function OnboardingScreen({ soldier, onComplete }) {
 
         {step === 4 && (
           <>
+            <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: '-.025em', lineHeight: 1.25 }}>전역하는 날, 누구로 나갈래?</h1>
+            <p style={{ fontSize: 13, color: 'var(--sub)', margin: '7px 0 24px', lineHeight: 1.5 }}>
+              여섯 능력치의 <b style={{ color: 'var(--ink)' }}>전역 목표</b>가 정해진다. 매일 그 목표와의 거리가 줄어드는 걸 보게 돼. 나중에 언제든 조정 가능.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {GOAL_TEMPLATES.map((g) => {
+                const on = goal === g.key;
+                return (
+                  <button key={g.key} type="button" onClick={() => setGoal(g.key)} className="tm-tap" style={{ border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'flex', alignItems: 'center', gap: 12, padding: '15px 14px', borderRadius: 15, textAlign: 'left',
+                    background: on ? 'rgba(var(--accent-rgb),.14)' : 'var(--surface)',
+                    boxShadow: on ? 'inset 0 0 0 1.5px var(--accent)' : 'inset 0 0 0 1px var(--line)' }}>
+                    <span style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: on ? 'rgba(var(--accent-rgb),.16)' : 'var(--surface2)', boxShadow: 'inset 0 0 0 1px var(--line)' }}>
+                      {Icon(g.icon, { size: 19, color: on ? 'var(--accent)' : 'var(--faint)', stroke: 1.9 })}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 14.5, fontWeight: 800, color: on ? 'var(--accent)' : 'var(--ink)' }}>{g.ko}</span>
+                      <span style={{ display: 'block', fontSize: 11.5, color: 'var(--sub)', marginTop: 3, lineHeight: 1.4 }}>{g.desc}</span>
+                    </span>
+                    {on && Icon('check', { size: 17, color: 'var(--accent)', stroke: 2.4 })}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {step === 5 && (
+          <>
             <h1 style={{ fontSize: 23, fontWeight: 800, letterSpacing: '-.025em', lineHeight: 1.25 }}>너의 수호신</h1>
             <p style={{ fontSize: 13, color: 'var(--sub)', margin: '7px 0 24px', lineHeight: 1.5 }}>
               네가 성장할수록 수호신의 대리석 몸이 <b style={{ color: '#c99a2e' }}>발끝부터 황금</b>으로 물든다.
+              신중하게 골라 — <b style={{ color: 'var(--ink)' }}>전역까지 함께</b>하고, 남은 하나는 성체 단계에 동료로 해금된다.
             </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
               {CREATURE_PATHS.map((p) => {

@@ -4,8 +4,47 @@ import { Card, ProgressBar, IconChip } from '../components/ui';
 import { STATUS } from '../icons';
 import { cats, radarCats } from '../data';
 import { useStore } from '../store';
+import { TipBanner } from '../components/Guide';
+import { VacationScreen } from './VacationScreen';
+import { BenefitsScreen } from './BenefitsScreen';
 
-export function RadarScreen({ onOpenOpp, onAddOpp, soldier }) {
+// 기회 tab = three jobs in one place: explore real programs (탐색), track the
+// army's reward currency (휴가), and claim what you're owed (혜택). The latter
+// two are browse-content, so they live as segments instead of nav tabs.
+const SEGMENTS = [
+  { key: 'explore', ko: '탐색', icon: 'target' },
+  { key: 'vacation', ko: '휴가', icon: 'palm' },
+  { key: 'benefits', ko: '혜택', icon: 'shieldGift' },
+];
+
+export function RadarScreen({ onOpenOpp, onAddOpp, onMakeQuest, soldier }) {
+  const [seg, setSeg] = useState('explore');
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 7, marginBottom: 16 }}>
+        {SEGMENTS.map((s) => {
+          const on = seg === s.key;
+          return (
+            <button key={s.key} onClick={() => setSeg(s.key)} className="tm-tap" style={{ flex: 1, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 12,
+              fontSize: 13, fontWeight: 700, background: on ? 'var(--accent)' : 'var(--surface)',
+              color: on ? 'var(--on-accent)' : 'var(--sub)', boxShadow: on ? 'none' : 'inset 0 0 0 1px var(--line)' }}>
+              {Icon(s.icon, { size: 15, color: on ? 'var(--on-accent)' : 'var(--sub)', stroke: 2 })}{s.ko}
+            </button>
+          );
+        })}
+      </div>
+      <div key={seg} className="tm-rise">
+        {seg === 'explore' && <ExploreList onOpenOpp={onOpenOpp} onAddOpp={onAddOpp} soldier={soldier} />}
+        {seg === 'vacation' && <VacationScreen onOpenOpp={onOpenOpp} />}
+        {seg === 'benefits' && <BenefitsScreen onMakeQuest={onMakeQuest} soldier={soldier} />}
+      </div>
+    </div>
+  );
+}
+
+function ExploreList({ onOpenOpp, onAddOpp, soldier }) {
   const catalog = useStore((s) => s.catalog);
   const storeSoldier = useStore((s) => s.soldier);
   const me = soldier || storeSoldier;
@@ -31,7 +70,9 @@ export function RadarScreen({ onOpenOpp, onAddOpp, soldier }) {
   const matched = catalog.filter((o) => (o.tags || []).some((t) => interests.includes(t))).length;
 
   return (
-    <div className="tm-rise">
+    <div>
+      <TipBanner id="radar" icon="target" title="진짜 프로그램, 단계별 경로"
+        text="자격증·대회·적금이 단계별 경로로 준비돼 있어. 단계마다 능력치 XP, 인증하면 +50% 보너스. 대회 입상은 포상휴가로 이어진다." />
       <Card pad={15} style={{ marginBottom: 14, display: 'flex', alignItems: 'center', gap: 13 }}>
         <IconChip name="target" tone="accent" size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>

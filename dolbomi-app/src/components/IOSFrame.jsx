@@ -59,7 +59,7 @@ export function IOSDevice({ children, width = 402, height = 874, dark = false })
       WebkitFontSmoothing: 'antialiased',
     }}>
       <div style={{ position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)', width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50 }} />
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, pointerEvents: 'none' }}>
         <IOSStatusBar dark={dark} />
       </div>
       <div style={{ position: 'absolute', inset: 0 }}>{children}</div>

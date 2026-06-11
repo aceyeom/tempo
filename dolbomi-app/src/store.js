@@ -25,7 +25,7 @@ function loadLocalOpps() {
 }
 function saveLocalOpps(list) { try { localStorage.setItem(LOCAL_OPPS_KEY, JSON.stringify(list)); } catch { /* ignore */ } }
 
-const DEFAULT_PREFS = { theme: 'dark', palette: '골드', path: 'haechi' };
+const DEFAULT_PREFS = { theme: 'light', palette: '골드', path: 'haechi' };
 function loadPrefs() {
   try { return { ...DEFAULT_PREFS, ...JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') }; }
   catch { return { ...DEFAULT_PREFS }; }
@@ -43,7 +43,10 @@ export const useStore = create((set, get) => ({
   authError: null,
   prefs: loadPrefs(),
   mood: null,
+  toast: null,
   ...OFFLINE_SNAPSHOT,
+
+  showToast(msg) { set({ toast: { msg, id: Date.now() } }); },
 
   // ── boot ───────────────────────────────────────────────────────────
   async bootstrap() {
@@ -137,14 +140,32 @@ export const useStore = create((set, get) => ({
   },
 
   async addTonight(oppId) {
-    if (!get().online) { addTonightLocal(set, get, oppId); return; }
-    try { await api.addTonight(oppId); await get().refresh(); } catch { /* ignore */ }
+    if (!get().online) { addTonightLocal(set, get, oppId); get().showToast('오늘 밤 퀘스트에 추가했어'); return; }
+    try { await api.addTonight(oppId); await get().refresh(); get().showToast('오늘 밤 퀘스트에 추가했어'); }
+    catch { /* ignore */ }
   },
 
   async checkin(mood, energy) {
     set({ mood: moodFromKey(mood) });
     if (!get().online) return;
-    try { await api.checkin(mood, energy); await get().refresh(); } catch { /* ignore */ }
+    try {
+      const r = await api.checkin(mood, energy);
+      await get().refresh();
+      const before = r?.streak_before ?? 0;
+      if (r?.streak === 1 && before > 1) get().showToast(`연속 기록이 끊겼어 · ${before}일 → 1일부터 다시`);
+      else if (r?.streak) get().showToast(`체크인 완료 · ${r.streak}일 연속`);
+    } catch { /* ignore */ }
+  },
+
+  // 전역 목표 (per-stat discharge targets) — from a goal template, editable
+  async setTargets(targets, goal = null) {
+    set((s) => ({
+      stats: s.stats.map((st) => targets[st.key] != null
+        ? { ...st, tgt: Math.max(20, Math.min(100, targets[st.key])) } : st),
+      soldier: goal ? { ...s.soldier, goal } : s.soldier,
+    }));
+    if (!get().online) return;
+    try { await api.setTargets(targets, goal); await get().refresh(); } catch { /* keep optimistic */ }
   },
 
   // ── onboarding ───────────────────────────────────────────────────────

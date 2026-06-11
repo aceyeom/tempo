@@ -46,12 +46,12 @@ export function AuthScreen() {
         <div style={{ marginBottom: 30 }}>
           <div style={{ width: 44, height: 5, borderRadius: 3, background: 'var(--accent)', marginBottom: 22 }} />
           <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-.03em', lineHeight: 1.16 }}>
-            {isSignup ? <>복무를<br />성장으로.</> : <>다시 왔구나.<br />이어서 하자.</>}
+            우리<br />억울하지 말자.
           </h1>
           <p style={{ fontSize: 13, color: 'var(--sub)', marginTop: 10, lineHeight: 1.55 }}>
             {isSignup
               ? '계정을 만들면 1분짜리 설정이 이어진다. 부대·병과·관심사에 맞춰 모든 퀘스트가 맞춤된다.'
-              : 'DOLBOMI · 군 복무 자기성장 플랫폼'}
+              : '18개월, 버린 시간으로 만들지 않는다 · DOLBOMI'}
           </p>
         </div>
 

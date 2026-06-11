@@ -35,10 +35,11 @@
   --warn:#E6B450; --warn-rgb:230,180,80; --danger:#F0795C; --danger-rgb:240,121,92;
 }
 
-/* light theme */
+/* light theme (the default: light + gold) — text alphas raised for contrast
+   on the pale gold background */
 .dolbomi[data-theme="light"]{
-  --ink:#171A1F; --sub:rgba(23,26,31,.62); --faint:rgba(23,26,31,.40);
-  --line:rgba(23,26,31,.10); --hair:rgba(23,26,31,.07); --track:rgba(23,26,31,.085);
+  --ink:#171A1F; --sub:rgba(23,26,31,.68); --faint:rgba(23,26,31,.48);
+  --line:rgba(23,26,31,.11); --hair:rgba(23,26,31,.075); --track:rgba(23,26,31,.09);
   --shadow:0 14px 30px -22px rgba(40,36,28,.45); --inset:rgba(255,255,255,.6); --bar:#5B6573;
 }
 .dolbomi[data-theme="light"][data-pal="gold"]{

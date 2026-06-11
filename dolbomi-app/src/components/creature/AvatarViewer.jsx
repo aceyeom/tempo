@@ -3,13 +3,14 @@ import { Icon } from '../../icons';
 import { ProgressBar } from '../ui';
 import { STAT_C } from '../../icons';
 import { CreatureHero, CREATURE_PATHS } from './CreatureHero';
-import { evolutionOf } from './GuardianCard';
+import { evolutionOf, COMPANION_STAGE, BANDS } from './GuardianCard';
 
 function AvatarViewer({ stats, creaturePath, creatureAnimal = 'ram', onSwapPath, milestones, theme, soldier, onClose }) {
   const evo = evolutionOf(stats);
   const level = Math.round(stats.reduce((a, s) => a + s.cur, 0) / stats.length);
   const pathInfo = CREATURE_PATHS.find((p) => p.key === creaturePath) || { ko: '수호신' };
-  const companion = creatureAnimal === 'ram' ? 'fox' : 'ram';
+  const companionUnlocked = evo.stage >= COMPANION_STAGE;
+  const companion = companionUnlocked ? (creatureAnimal === 'ram' ? 'fox' : 'ram') : null;
   // the single progression signal: how far the marble has turned to gold
   const goldPct = Math.round(Math.min(100, (stats.reduce((a, s) => a + s.cur, 0) / 600) * 100));
 
@@ -44,7 +45,8 @@ function AvatarViewer({ stats, creaturePath, creatureAnimal = 'ram', onSwapPath,
         animation: 'avHint 3.4s .8s ease-out forwards' }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 600, color: 'rgba(255,255,255,.78)',
           padding: '7px 13px', borderRadius: 999, background: 'rgba(14,16,15,.5)', backdropFilter: 'blur(8px)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.12)' }}>
-          {Icon('replan', { size: 13, color: 'rgba(255,255,255,.78)', stroke: 2 })} 드래그로 회전 · 뒷수호신을 터치해 앞으로
+          {Icon('replan', { size: 13, color: 'rgba(255,255,255,.78)', stroke: 2 })}
+          {companionUnlocked ? ' 드래그로 회전 · 뒷수호신을 터치해 교대' : ` 드래그로 회전 · 동료 수호신은 성체(${BANDS[COMPANION_STAGE - 1].min} XP)에 해금`}
         </span>
       </div>
       <style>{`@keyframes avHint{0%,55%{opacity:1}100%{opacity:0}}`}</style>

@@ -3,20 +3,27 @@ import { Icon } from '../../icons';
 import { ProgressBar } from '../ui';
 import { CreatureHero, CREATURE_PATHS } from './CreatureHero';
 
+// Evolution roadmap. Stats start at 0 for new accounts, so the first band is
+// reachable in the first week (~10 XP/day from "오늘 밤의 3" alone); later bands
+// stretch out and lean on opportunity subquests (15–90 XP each).
+// `rewards` are cosmetic/prestige only — features are never gated.
 const BANDS = [
-  { min: 0,   label: '각성기' },
-  { min: 150, label: '성장기' },
-  { min: 270, label: '성체' },
-  { min: 390, label: '정예' },
-  { min: 500, label: '수호신' },
+  { min: 0,   label: '각성기', rewards: [] },
+  { min: 40,  label: '성장기', rewards: ['팔레트 「택티컬」'] },
+  { min: 140, label: '성체',   rewards: ['동료 수호신 해금', '팔레트 「스틸」'] },
+  { min: 300, label: '정예',   rewards: ['칭호 「정예」'] },
+  { min: 480, label: '수호신', rewards: ['칭호 「수호신의 주인」', '황금화 완성'] },
 ];
+
+// stage (1-based) at which the second guardian becomes switchable
+const COMPANION_STAGE = 3;
 
 function evolutionOf(stats) {
   const total = stats.reduce((a, s) => a + s.cur, 0);
   let idx = 0; for (let i = 0; i < BANDS.length; i++) if (total >= BANDS[i].min) idx = i;
   const cur = BANDS[idx], next = BANDS[idx + 1];
   const pct = next ? Math.round((total - cur.min) / (next.min - cur.min) * 100) : 100;
-  return { total, stage: idx + 1, label: cur.label, nextLabel: next ? next.label : null, pct, maxed: !next };
+  return { total, stage: idx + 1, label: cur.label, nextLabel: next ? next.label : null, nextMin: next ? next.min : null, pct, maxed: !next };
 }
 
 function GuardianHero({ soldier, stats, creaturePath, creatureAnimal = 'ram', milestones, pulseSignal, onPickPath, variant = 'home', onOpenAvatar }) {
@@ -26,7 +33,8 @@ function GuardianHero({ soldier, stats, creaturePath, creatureAnimal = 'ram', mi
   const level = Math.round(stats.reduce((a, s) => a + s.cur, 0) / stats.length);
   const [picking, setPicking] = React.useState(false);
   const tall = variant === 'profile';
-  const companion = tall ? (creatureAnimal === 'ram' ? 'fox' : 'ram') : null;
+  const companionUnlocked = evo.stage >= COMPANION_STAGE;
+  const companion = tall && companionUnlocked ? (creatureAnimal === 'ram' ? 'fox' : 'ram') : null;
 
   return (
     <div className="tm-card" style={{ position: 'relative', overflow: 'hidden', height: tall ? 340 : 300, borderRadius: 'var(--r-lg)',
@@ -60,28 +68,32 @@ function GuardianHero({ soldier, stats, creaturePath, creatureAnimal = 'ram', mi
             display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', borderRadius: 999,
             background: 'rgba(0,0,0,.4)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.16)', color: '#F2F4F6',
             fontSize: 11, fontWeight: 700, fontFamily: 'inherit' }}>
-            {Icon('replan', { size: 13, color: '#F2F4F6', stroke: 2 })}길 바꾸기
+            {Icon(companionUnlocked ? 'replan' : 'shield', { size: 13, color: '#F2F4F6', stroke: 2 })}{companionUnlocked ? '수호신 교대' : '동료'}
           </button>
         </div>
       </div>
 
-      {/* path picker popover */}
+      {/* path picker popover — the unchosen guardian unlocks at 성체 (stage 3) */}
       {picking && (
-        <div style={{ position: 'absolute', top: 50, right: 14, zIndex: 5, width: 200, background: '#1b1f22',
+        <div style={{ position: 'absolute', top: 50, right: 14, zIndex: 5, width: 218, background: '#1b1f22',
           borderRadius: 'var(--r-md)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.1), 0 18px 40px -18px rgba(0,0,0,.7)', padding: 6,
           animation: 'tmPop .22s cubic-bezier(.2,.8,.2,1)' }}>
           {PATHS.map((p) => {
             const on = p.key === creaturePath;
+            const locked = !on && !companionUnlocked;
             return (
-              <button key={p.key} onClick={() => { onPickPath && onPickPath(p.key); setPicking(false); }} className="tm-tap"
-                style={{ width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10,
+              <button key={p.key} onClick={() => { if (!locked && onPickPath) onPickPath(p.key); if (!locked) setPicking(false); }} className="tm-tap"
+                style={{ width: '100%', textAlign: 'left', border: 'none', cursor: locked ? 'default' : 'pointer', fontFamily: 'inherit',
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', borderRadius: 10, opacity: locked ? 0.6 : 1,
                   background: on ? 'rgba(var(--accent-rgb),.16)' : 'transparent' }}>
                 <span style={{ width: 7, height: 7, borderRadius: 999, background: on ? 'var(--accent)' : 'rgba(255,255,255,.3)', flexShrink: 0 }} />
                 <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: on ? 'var(--accent)' : '#F2F4F6' }}>{p.ko}</span>
-                  <span style={{ display: 'block', fontSize: 10.5, color: 'rgba(255,255,255,.4)' }}>{p.desc}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: on ? 'var(--accent)' : '#F2F4F6' }}>{p.ko}{on ? ' · 나의 수호신' : ''}</span>
+                  <span style={{ display: 'block', fontSize: 10.5, color: 'rgba(255,255,255,.4)' }}>
+                    {locked ? `성체 단계(${BANDS[COMPANION_STAGE - 1].min} XP)에 동료로 해금` : p.desc}
+                  </span>
                 </span>
+                {locked && Icon('shield', { size: 13, color: 'rgba(255,255,255,.4)', stroke: 2 })}
               </button>
             );
           })}
@@ -130,4 +142,4 @@ function GuardianHero({ soldier, stats, creaturePath, creatureAnimal = 'ram', mi
   );
 }
 
-export { GuardianHero, evolutionOf };
+export { GuardianHero, evolutionOf, BANDS, COMPANION_STAGE };

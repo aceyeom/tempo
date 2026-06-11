@@ -107,7 +107,7 @@ function BenefitCard({ b, group, onMakeQuest }) {
           <button onClick={() => onMakeQuest(b.oppId)} className="tm-tap" style={{ marginLeft: 'auto', flexShrink: 0, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', gap: 4, padding: '5px 11px', borderRadius: 999,
             background: 'rgba(var(--accent-rgb),.12)', color: 'var(--accent)', fontSize: 11.5, fontWeight: 700, boxShadow: 'inset 0 0 0 1px rgba(var(--accent-rgb),.26)' }}>
-            {Icon('plus', { size: 13, color: 'var(--accent)', stroke: 2.4 })}퀘스트
+            {Icon('target', { size: 13, color: 'var(--accent)', stroke: 2.2 })}경로 보기
           </button>
         )}
       </div>
